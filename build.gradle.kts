@@ -1,9 +1,15 @@
 plugins {
     id("java")
+    application
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.tonic.ui"
 version = "1.0-SNAPSHOT"
+
+application {
+    mainClass.set("com.tonic.ui.YABRStudio")
+}
 
 repositories {
     mavenCentral()
@@ -16,7 +22,6 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito:mockito-junit-jupiter:5.8.0")
 
-    // JStudio UI dependencies
     implementation("com.formdev:flatlaf:3.2.5")
     implementation("com.fifesoft:rsyntaxtextarea:3.3.4")
     implementation("org.tinyjee.jgraphx:jgraphx:3.4.1.3")
@@ -29,8 +34,40 @@ dependencies {
     implementation("com.github.Tonic-Box:YABR:main-SNAPSHOT")
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "com.tonic.ui.YABRStudio"
+    }
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("JStudio")
+    archiveClassifier.set("")
+    archiveVersion.set("")
+    manifest {
+        attributes["Main-Class"] = "com.tonic.ui.YABRStudio"
+    }
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
+}
+
+configurations.all {
+    resolutionStrategy {
+        cacheChangingModulesFor(0, "seconds")
+        cacheDynamicVersionsFor(0, "seconds")
+    }
 }
 
 tasks.register("refreshDependencies") {
@@ -41,12 +78,5 @@ tasks.register("refreshDependencies") {
             resolutionStrategy.cacheChangingModulesFor(0, "seconds")
         }
         println("Dependencies will be refreshed on next build")
-    }
-}
-
-configurations.all {
-    resolutionStrategy {
-        cacheChangingModulesFor(0, "seconds")
-        cacheDynamicVersionsFor(0, "seconds")
     }
 }

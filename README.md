@@ -32,26 +32,24 @@ Powered by [YABR](https://github.com/Tonic-Box/YABR)
 - Console with multi-level logging
 - 8 built-in themes (dark and light)
 
-## Building
+## Building & Running
 
+### Quick Start
 ```bash
-./gradlew build
+./gradlew run              # Run the application directly
+./gradlew build            # Compile + test + create fat JAR
 ```
 
-To refresh dependencies (useful for SNAPSHOT versions):
+### Distribution
 ```bash
-./gradlew build --refresh-dependencies
+./gradlew shadowJar        # Create fat JAR only
+java -jar build/libs/JStudio.jar
 ```
 
-## Running
-
+### Development
 ```bash
-./gradlew run
-```
-
-Or run the built JAR:
-```bash
-java -jar build/libs/JStudio-1.0-SNAPSHOT.jar
+./gradlew clean build      # Fresh build
+./gradlew refreshDependencies build  # Force refresh SNAPSHOT deps
 ```
 
 ## Usage
