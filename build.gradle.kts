@@ -1,0 +1,52 @@
+plugins {
+    id("java")
+}
+
+group = "com.tonic.ui"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+    maven { url = uri("https://www.jitpack.io") }
+}
+
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:5.9.1"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.mockito:mockito-core:5.8.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.8.0")
+
+    // JStudio UI dependencies
+    implementation("com.formdev:flatlaf:3.2.5")
+    implementation("com.fifesoft:rsyntaxtextarea:3.3.4")
+    implementation("org.tinyjee.jgraphx:jgraphx:3.4.1.3")
+
+    implementation("org.projectlombok:lombok:1.18.30")
+    annotationProcessor("org.projectlombok:lombok:1.18.30")
+
+    implementation("com.github.javaparser:javaparser-core:3.25.5")
+
+    implementation("com.github.Tonic-Box:YABR:main-SNAPSHOT")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.register("refreshDependencies") {
+    description = "Force refresh all dependencies"
+    group = "build"
+    doLast {
+        configurations.all {
+            resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+        }
+        println("Dependencies will be refreshed on next build")
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        cacheChangingModulesFor(0, "seconds")
+        cacheDynamicVersionsFor(0, "seconds")
+    }
+}

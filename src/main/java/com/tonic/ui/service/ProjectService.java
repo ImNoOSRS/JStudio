@@ -1,0 +1,250 @@
+package com.tonic.ui.service;
+
+import com.tonic.parser.ClassFile;
+import com.tonic.parser.ClassPool;
+import com.tonic.ui.event.EventBus;
+import com.tonic.ui.event.events.ProjectLoadedEvent;
+import com.tonic.ui.event.events.StatusMessageEvent;
+import com.tonic.ui.model.ClassEntryModel;
+import com.tonic.ui.model.ProjectModel;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
+
+/**
+ * Service for loading and managing projects (JARs, directories, class files).
+ */
+public class ProjectService {
+
+    private static final ProjectService INSTANCE = new ProjectService();
+
+    private ProjectModel currentProject;
+
+    private ProjectService() {
+    }
+
+    public static ProjectService getInstance() {
+        return INSTANCE;
+    }
+
+    /**
+     * Create a new empty project.
+     */
+    public ProjectModel createProject(String name) {
+        ProjectModel project = new ProjectModel();
+        project.setProjectName(name);
+        this.currentProject = project;
+        return project;
+    }
+
+    /**
+     * Load a JAR file into a new project.
+     */
+    public ProjectModel loadJar(File jarFile, ProgressCallback progress) throws IOException {
+        if (!jarFile.exists()) {
+            throw new IOException("File not found: " + jarFile.getAbsolutePath());
+        }
+
+        String name = jarFile.getName();
+        EventBus.getInstance().post(new StatusMessageEvent(this, "Loading " + name + "..."));
+
+        List<ClassFile> classes = new ArrayList<>();
+
+        try (JarFile jar = new JarFile(jarFile)) {
+            Enumeration<JarEntry> entries = jar.entries();
+            List<JarEntry> classEntries = new ArrayList<>();
+
+            // First pass: count class files
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
+                    classEntries.add(entry);
+                }
+            }
+
+            int total = classEntries.size();
+            int current = 0;
+
+            // Second pass: load classes
+            for (JarEntry entry : classEntries) {
+                try (InputStream is = jar.getInputStream(entry)) {
+                    ClassFile cf = new ClassFile(is);
+                    classes.add(cf);
+                } catch (Exception e) {
+                    // Log but continue loading other classes
+                    System.err.println("Failed to load class: " + entry.getName() + " - " + e.getMessage());
+                }
+
+                current++;
+                if (progress != null) {
+                    progress.onProgress(current, total, "Loading " + entry.getName());
+                }
+            }
+        }
+
+        // Create project and class pool
+        ProjectModel project = new ProjectModel();
+        project.setProjectName(name);
+        project.setSourceFile(jarFile);
+
+        // Create a custom class pool without loading JRT
+        ClassPool pool = createEmptyClassPool();
+        for (ClassFile cf : classes) {
+            pool.put(cf);
+        }
+        project.setClassPool(pool);
+
+        this.currentProject = project;
+
+        EventBus.getInstance().post(new StatusMessageEvent(this,
+                "Loaded " + classes.size() + " classes from " + name));
+        EventBus.getInstance().post(new ProjectLoadedEvent(this, project));
+
+        return project;
+    }
+
+    /**
+     * Load a single class file.
+     */
+    public ProjectModel loadClassFile(File classFile) throws IOException {
+        if (!classFile.exists()) {
+            throw new IOException("File not found: " + classFile.getAbsolutePath());
+        }
+
+        byte[] data = Files.readAllBytes(classFile.toPath());
+        ClassFile cf = new ClassFile(new ByteArrayInputStream(data));
+
+        ProjectModel project = new ProjectModel();
+        project.setProjectName(classFile.getName());
+        project.setSourceFile(classFile);
+
+        ClassPool pool = createEmptyClassPool();
+        pool.put(cf);
+        project.setClassPool(pool);
+
+        this.currentProject = project;
+
+        EventBus.getInstance().post(new StatusMessageEvent(this,
+                "Loaded " + cf.getClassName()));
+        EventBus.getInstance().post(new ProjectLoadedEvent(this, project));
+
+        return project;
+    }
+
+    /**
+     * Load a directory of class files.
+     */
+    public ProjectModel loadDirectory(File directory, ProgressCallback progress) throws IOException {
+        if (!directory.exists() || !directory.isDirectory()) {
+            throw new IOException("Not a valid directory: " + directory.getAbsolutePath());
+        }
+
+        EventBus.getInstance().post(new StatusMessageEvent(this, "Loading " + directory.getName() + "..."));
+
+        List<Path> classPaths = new ArrayList<>();
+        try (Stream<Path> paths = Files.walk(directory.toPath())) {
+            paths.filter(p -> p.toString().endsWith(".class"))
+                    .forEach(classPaths::add);
+        }
+
+        List<ClassFile> classes = new ArrayList<>();
+        int total = classPaths.size();
+        int current = 0;
+
+        for (Path path : classPaths) {
+            try {
+                byte[] data = Files.readAllBytes(path);
+                ClassFile cf = new ClassFile(new ByteArrayInputStream(data));
+                classes.add(cf);
+            } catch (Exception e) {
+                System.err.println("Failed to load class: " + path + " - " + e.getMessage());
+            }
+
+            current++;
+            if (progress != null) {
+                progress.onProgress(current, total, "Loading " + path.getFileName());
+            }
+        }
+
+        ProjectModel project = new ProjectModel();
+        project.setProjectName(directory.getName());
+        project.setSourceFile(directory);
+
+        ClassPool pool = createEmptyClassPool();
+        for (ClassFile cf : classes) {
+            pool.put(cf);
+        }
+        project.setClassPool(pool);
+
+        this.currentProject = project;
+
+        EventBus.getInstance().post(new StatusMessageEvent(this,
+                "Loaded " + classes.size() + " classes from " + directory.getName()));
+        EventBus.getInstance().post(new ProjectLoadedEvent(this, project));
+
+        return project;
+    }
+
+    /**
+     * Add a class to the current project.
+     */
+    public ClassEntryModel addClass(byte[] classData) throws IOException {
+        if (currentProject == null) {
+            createProject("Untitled");
+        }
+
+        ClassFile cf = new ClassFile(new ByteArrayInputStream(classData));
+        return currentProject.addClass(cf);
+    }
+
+    /**
+     * Close the current project.
+     */
+    public void closeProject() {
+        if (currentProject != null) {
+            currentProject.clear();
+            currentProject = null;
+        }
+    }
+
+    /**
+     * Get the current project.
+     */
+    public ProjectModel getCurrentProject() {
+        return currentProject;
+    }
+
+    /**
+     * Check if there is a project open.
+     */
+    public boolean hasProject() {
+        return currentProject != null && currentProject.getClassCount() > 0;
+    }
+
+    /**
+     * Create an empty class pool without loading JRT classes.
+     * This avoids the slow startup of loading all java.base classes.
+     */
+    private ClassPool createEmptyClassPool() {
+        return new ClassPool(true);
+    }
+
+    /**
+     * Progress callback interface.
+     */
+    @FunctionalInterface
+    public interface ProgressCallback {
+        void onProgress(int current, int total, String message);
+    }
+}

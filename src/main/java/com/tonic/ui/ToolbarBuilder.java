@@ -1,0 +1,173 @@
+package com.tonic.ui;
+
+import com.tonic.ui.theme.Icons;
+import com.tonic.ui.theme.JStudioTheme;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.JToolBar;
+import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+/**
+ * Builds the main toolbar for JStudio.
+ */
+public class ToolbarBuilder {
+
+    private final MainFrame mainFrame;
+    private JToggleButton sourceButton;
+    private JToggleButton bytecodeButton;
+    private JToggleButton irButton;
+
+    public ToolbarBuilder(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
+    }
+
+    public JToolBar build() {
+        JToolBar toolbar = new JToolBar();
+        toolbar.setFloatable(false);
+        toolbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, JStudioTheme.getBorder()));
+        toolbar.setBackground(JStudioTheme.getBgPrimary());
+
+        // File operations
+        toolbar.add(createButton(Icons.getIcon("open"), "Open JAR/Class (Ctrl+O)", e -> mainFrame.showOpenDialog()));
+        toolbar.add(createButton(Icons.getIcon("save"), "Export Class (Ctrl+Shift+E)", e -> mainFrame.exportCurrentClass()));
+        toolbar.addSeparator();
+
+        // Navigation
+        toolbar.add(createButton(Icons.getIcon("back"), "Navigate Back (Alt+Left)", e -> mainFrame.navigateBack()));
+        toolbar.add(createButton(Icons.getIcon("forward"), "Navigate Forward (Alt+Right)", e -> mainFrame.navigateForward()));
+        toolbar.addSeparator();
+
+        // View switching (toggle buttons in a group)
+        ButtonGroup viewGroup = new ButtonGroup();
+
+        sourceButton = createToggleButton(Icons.getIcon("source"), "Source View (F5)", viewGroup,
+                e -> mainFrame.switchToSourceView());
+        sourceButton.setSelected(true);
+        toolbar.add(sourceButton);
+
+        bytecodeButton = createToggleButton(Icons.getIcon("bytecode"), "Bytecode View (F6)", viewGroup,
+                e -> mainFrame.switchToBytecodeView());
+        toolbar.add(bytecodeButton);
+
+        irButton = createToggleButton(Icons.getIcon("ir"), "IR View (F7)", viewGroup,
+                e -> mainFrame.switchToIRView());
+        toolbar.add(irButton);
+
+        toolbar.addSeparator();
+
+        // Analysis
+        toolbar.add(createButton(Icons.getIcon("analyze"), "Run Analysis (F9)", e -> mainFrame.runAnalysis()));
+        toolbar.add(createButton(Icons.getIcon("callgraph"), "Show Call Graph (Ctrl+Shift+G)", e -> mainFrame.showCallGraph()));
+        toolbar.add(createButton(Icons.getIcon("transform"), "Apply Transforms (Ctrl+Shift+T)", e -> mainFrame.showTransformDialog()));
+        toolbar.addSeparator();
+
+        // Refresh
+        toolbar.add(createButton(Icons.getIcon("refresh"), "Refresh (Ctrl+F5)", e -> mainFrame.refreshCurrentView()));
+
+        // Spacer to push search to the right
+        toolbar.add(Box.createHorizontalGlue());
+
+        // Search field
+        JTextField searchField = new JTextField(20);
+        searchField.setMaximumSize(new Dimension(200, 28));
+        searchField.setPreferredSize(new Dimension(200, 28));
+        searchField.putClientProperty("JTextField.placeholderText", "Search classes...");
+        searchField.setBackground(JStudioTheme.getBgTertiary());
+        searchField.setForeground(JStudioTheme.getTextPrimary());
+        searchField.setCaretColor(JStudioTheme.getTextPrimary());
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(JStudioTheme.getBorder()),
+                BorderFactory.createEmptyBorder(2, 6, 2, 6)
+        ));
+
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    mainFrame.searchClasses(searchField.getText());
+                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    searchField.setText("");
+                    mainFrame.requestFocus();
+                }
+            }
+        });
+
+        toolbar.add(searchField);
+        toolbar.add(Box.createHorizontalStrut(8));
+
+        return toolbar;
+    }
+
+    private JButton createButton(javax.swing.Icon icon, String tooltip, ActionListener action) {
+        JButton button = new JButton(icon);
+        button.setToolTipText(tooltip);
+        button.setFocusable(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setPreferredSize(new Dimension(32, 32));
+        button.addActionListener(action);
+
+        // Add hover effect
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                button.setContentAreaFilled(true);
+                button.setBackground(JStudioTheme.getHover());
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                button.setContentAreaFilled(false);
+            }
+        });
+
+        return button;
+    }
+
+    private JToggleButton createToggleButton(javax.swing.Icon icon, String tooltip,
+                                              ButtonGroup group, ActionListener action) {
+        JToggleButton button = new JToggleButton(icon);
+        button.setToolTipText(tooltip);
+        button.setFocusable(false);
+        button.setBorderPainted(false);
+        button.setPreferredSize(new Dimension(32, 32));
+        button.addActionListener(action);
+        group.add(button);
+
+        return button;
+    }
+
+    /**
+     * Update the view toggle buttons to reflect current view mode.
+     */
+    public void setViewMode(ViewMode mode) {
+        switch (mode) {
+            case SOURCE:
+                sourceButton.setSelected(true);
+                break;
+            case BYTECODE:
+                bytecodeButton.setSelected(true);
+                break;
+            case IR:
+                irButton.setSelected(true);
+                break;
+        }
+    }
+
+    /**
+     * View mode enum for toolbar state.
+     */
+    public enum ViewMode {
+        SOURCE,
+        BYTECODE,
+        IR
+    }
+}
