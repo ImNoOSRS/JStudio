@@ -10,6 +10,8 @@ import com.tonic.ui.model.ProjectModel;
 import com.tonic.ui.theme.JStudioTheme;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -87,21 +89,28 @@ public class TransformPanel extends JPanel {
     }
 
     private JPanel createTargetPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.setBackground(JStudioTheme.getBgSecondary());
-        panel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, JStudioTheme.getBorder()));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, JStudioTheme.getBorder()),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
 
         JLabel classLabelTitle = new JLabel("Class:");
         classLabelTitle.setForeground(JStudioTheme.getTextSecondary());
         panel.add(classLabelTitle);
+        panel.add(Box.createHorizontalStrut(8));
 
         classLabel = new JLabel("(none selected)");
         classLabel.setForeground(JStudioTheme.getAccent());
         panel.add(classLabel);
+        panel.add(Box.createHorizontalStrut(16));
 
-        JLabel methodLabelTitle = new JLabel("    Method:");
+        JLabel methodLabelTitle = new JLabel("Method:");
         methodLabelTitle.setForeground(JStudioTheme.getTextSecondary());
         panel.add(methodLabelTitle);
+        panel.add(Box.createHorizontalStrut(8));
 
         methodComboBox = new JComboBox<>();
         methodComboBox.setBackground(JStudioTheme.getBgTertiary());
@@ -111,48 +120,57 @@ public class TransformPanel extends JPanel {
             if (methodComboBox.getSelectedItem() instanceof MethodEntryModel) {
                 selectedMethod = (MethodEntryModel) methodComboBox.getSelectedItem();
                 updateStatusLabel();
-                // Clear preview areas when method changes
                 beforeArea.setText("");
                 afterArea.setText("");
             }
         });
         panel.add(methodComboBox);
+        panel.add(Box.createHorizontalGlue());
 
         return panel;
     }
 
     private JPanel createBottomPanel() {
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.X_AXIS));
         bottomPanel.setBackground(JStudioTheme.getBgSecondary());
-        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JStudioTheme.getBorder()));
+        bottomPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, JStudioTheme.getBorder()),
+                BorderFactory.createEmptyBorder(8, 8, 8, 8)
+        ));
 
         JButton previewButton = new JButton("Preview");
         previewButton.setBackground(JStudioTheme.getBgTertiary());
         previewButton.setForeground(JStudioTheme.getTextPrimary());
         previewButton.addActionListener(e -> preview());
         bottomPanel.add(previewButton);
+        bottomPanel.add(Box.createHorizontalStrut(8));
 
         JButton applyButton = new JButton("Apply to Method");
         applyButton.setBackground(JStudioTheme.getBgTertiary());
         applyButton.setForeground(JStudioTheme.getTextPrimary());
         applyButton.addActionListener(e -> applyToMethod());
         bottomPanel.add(applyButton);
+        bottomPanel.add(Box.createHorizontalStrut(8));
 
         JButton applyClassButton = new JButton("Apply to Class");
         applyClassButton.setBackground(JStudioTheme.getBgTertiary());
         applyClassButton.setForeground(JStudioTheme.getTextPrimary());
         applyClassButton.addActionListener(e -> applyToClass());
         bottomPanel.add(applyClassButton);
+        bottomPanel.add(Box.createHorizontalStrut(8));
 
         JButton applyAllButton = new JButton("Apply to All Classes");
         applyAllButton.setBackground(JStudioTheme.getBgTertiary());
         applyAllButton.setForeground(JStudioTheme.getTextPrimary());
         applyAllButton.addActionListener(e -> applyToAllClasses());
         bottomPanel.add(applyAllButton);
+        bottomPanel.add(Box.createHorizontalStrut(16));
 
         statusLabel = new JLabel("Select a class to transform.");
         statusLabel.setForeground(JStudioTheme.getTextSecondary());
         bottomPanel.add(statusLabel);
+        bottomPanel.add(Box.createHorizontalGlue());
 
         return bottomPanel;
     }
@@ -199,26 +217,31 @@ public class TransformPanel extends JPanel {
         panel.add(scrollPane, BorderLayout.CENTER);
 
         // Buttons for select all/none
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
         buttonPanel.setBackground(JStudioTheme.getBgSecondary());
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
 
         JButton selectAll = new JButton("All");
         selectAll.setBackground(JStudioTheme.getBgTertiary());
         selectAll.setForeground(JStudioTheme.getTextPrimary());
         selectAll.addActionListener(e -> setAllSelected(true));
         buttonPanel.add(selectAll);
+        buttonPanel.add(Box.createHorizontalStrut(4));
 
         JButton selectNone = new JButton("None");
         selectNone.setBackground(JStudioTheme.getBgTertiary());
         selectNone.setForeground(JStudioTheme.getTextPrimary());
         selectNone.addActionListener(e -> setAllSelected(false));
         buttonPanel.add(selectNone);
+        buttonPanel.add(Box.createHorizontalStrut(4));
 
         JButton selectStandard = new JButton("Standard");
         selectStandard.setBackground(JStudioTheme.getBgTertiary());
         selectStandard.setForeground(JStudioTheme.getTextPrimary());
         selectStandard.addActionListener(e -> selectStandard());
         buttonPanel.add(selectStandard);
+        buttonPanel.add(Box.createHorizontalGlue());
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
 

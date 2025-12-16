@@ -4,15 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a2f8628d-ef6a-445a-bbf2-621b2c7eb785" name="Changes" comment="- Tab Click Fix&#10;- File Chooser Path Pasting support&#10;- Drag and Drop Support for Jars and Classes">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/MainFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/MainFrame.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/MenuBarBuilder.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/MenuBarBuilder.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/EditorPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/EditorPanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/EditorTab.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/EditorTab.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/source/SourceCodeView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/editor/source/SourceCodeView.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/navigator/NavigatorPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/navigator/NavigatorPanel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/util/KeyboardShortcuts.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/util/KeyboardShortcuts.java" afterDir="false" />
+    <list default="true" id="a2f8628d-ef6a-445a-bbf2-621b2c7eb785" name="Changes" comment="- Fixed Bracket Matching&#10;- Fixed Field/Method navigation&#10;- Added explicit support for Mac Keyboard Shortcuts">
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/tonic/ui/transform/TransformPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/tonic/ui/transform/TransformPanel.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -170,7 +163,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765919627438</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="- Fixed Bracket Matching&#10;- Fixed Field/Method navigation&#10;- Added explicit support for Mac Keyboard Shortcuts">
+      <option name="closed" value="true" />
+      <created>1765921887613</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1765921887613</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -188,6 +189,7 @@
     <MESSAGE value="init" />
     <MESSAGE value="Annotation mutability support for transformer scripting" />
     <MESSAGE value="- Tab Click Fix&#10;- File Chooser Path Pasting support&#10;- Drag and Drop Support for Jars and Classes" />
-    <option name="LAST_COMMIT_MESSAGE" value="- Tab Click Fix&#10;- File Chooser Path Pasting support&#10;- Drag and Drop Support for Jars and Classes" />
+    <MESSAGE value="- Fixed Bracket Matching&#10;- Fixed Field/Method navigation&#10;- Added explicit support for Mac Keyboard Shortcuts" />
+    <option name="LAST_COMMIT_MESSAGE" value="- Fixed Bracket Matching&#10;- Fixed Field/Method navigation&#10;- Added explicit support for Mac Keyboard Shortcuts" />
   </component>
 </project>
