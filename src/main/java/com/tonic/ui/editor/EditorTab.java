@@ -142,14 +142,22 @@ public class EditorTab extends JPanel {
      * Get the title for this tab.
      */
     public String getTitle() {
-        return classEntry.getSimpleName();
+        return sanitize(classEntry.getSimpleName());
     }
 
     /**
      * Get the tooltip for this tab.
      */
     public String getTooltip() {
-        return classEntry.getClassName();
+        return sanitize(classEntry.getClassName());
+    }
+
+    private String sanitize(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     /**

@@ -135,6 +135,14 @@ public class StatusBar extends JPanel implements ThemeManager.ThemeChangeListene
         return sep;
     }
 
+    private String sanitize(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
     private void handleStatusMessage(StatusMessageEvent event) {
         setMessage(event.getMessage(), event.getType());
     }
@@ -150,7 +158,7 @@ public class StatusBar extends JPanel implements ThemeManager.ThemeChangeListene
      * Set the status message with type.
      */
     public void setMessage(String message, StatusMessageEvent.MessageType type) {
-        messageLabel.setText(message);
+        messageLabel.setText(sanitize(message));
 
         switch (type) {
             case WARNING:
@@ -187,7 +195,7 @@ public class StatusBar extends JPanel implements ThemeManager.ThemeChangeListene
      */
     public void showProgress(String message) {
         progressBar.setIndeterminate(true);
-        progressBar.setString(message);
+        progressBar.setString(sanitize(message));
         progressBar.setVisible(true);
     }
 
@@ -198,7 +206,7 @@ public class StatusBar extends JPanel implements ThemeManager.ThemeChangeListene
         progressBar.setIndeterminate(false);
         progressBar.setMaximum(total);
         progressBar.setValue(current);
-        progressBar.setString(message + " (" + current + "/" + total + ")");
+        progressBar.setString(sanitize(message) + " (" + current + "/" + total + ")");
         progressBar.setVisible(true);
     }
 

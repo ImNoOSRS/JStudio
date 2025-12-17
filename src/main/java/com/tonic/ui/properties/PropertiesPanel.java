@@ -269,9 +269,17 @@ public class PropertiesPanel extends JPanel implements ThemeManager.ThemeChangeL
         gbc.gridx = 1;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        JLabel valueComp = new JLabel(value);
+        JLabel valueComp = new JLabel(sanitize(value));
         valueComp.setForeground(JStudioTheme.getTextPrimary());
         panel.add(valueComp, gbc);
+    }
+
+    private String sanitize(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     private String formatAccessFlags(int flags) {

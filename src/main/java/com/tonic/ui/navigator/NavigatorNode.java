@@ -23,6 +23,11 @@ public abstract class NavigatorNode extends DefaultMutableTreeNode {
 
     public abstract String getTooltip();
 
+    @Override
+    public String toString() {
+        return getDisplayText();
+    }
+
     protected static String sanitizeDisplayText(String text) {
         if (text == null) return "";
         String sanitized = text
@@ -105,7 +110,7 @@ public abstract class NavigatorNode extends DefaultMutableTreeNode {
 
         @Override
         public String getTooltip() {
-            return packageName;
+            return sanitizeDisplayText(packageName);
         }
     }
 
@@ -136,7 +141,7 @@ public abstract class NavigatorNode extends DefaultMutableTreeNode {
 
         @Override
         public String getTooltip() {
-            return classEntry.getClassName();
+            return sanitizeDisplayText(classEntry.getClassName());
         }
     }
 
@@ -167,7 +172,7 @@ public abstract class NavigatorNode extends DefaultMutableTreeNode {
 
         @Override
         public String getTooltip() {
-            return methodEntry.getName() + methodEntry.getDescriptor();
+            return sanitizeDisplayText(methodEntry.getName() + methodEntry.getDescriptor());
         }
     }
 
@@ -198,7 +203,7 @@ public abstract class NavigatorNode extends DefaultMutableTreeNode {
 
         @Override
         public String getTooltip() {
-            return fieldEntry.getName() + " : " + fieldEntry.getDescriptor();
+            return sanitizeDisplayText(fieldEntry.getName() + " : " + fieldEntry.getDescriptor());
         }
     }
 

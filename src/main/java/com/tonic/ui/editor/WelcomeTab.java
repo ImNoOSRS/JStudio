@@ -355,7 +355,8 @@ public class WelcomeTab extends JPanel implements ThemeManager.ThemeChangeListen
         panel.add(iconLabel);
 
         // Clickable class name
-        JLabel classLink = new JLabel(info.classEntry.getClassName());
+        String safeClassName = sanitize(info.classEntry.getClassName());
+        JLabel classLink = new JLabel(safeClassName);
         classLink.setForeground(JStudioTheme.getAccent());
         classLink.setFont(JStudioTheme.getCodeFont(12));
         classLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -368,12 +369,12 @@ public class WelcomeTab extends JPanel implements ThemeManager.ThemeChangeListen
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                classLink.setText("<html><u>" + info.classEntry.getClassName() + "</u></html>");
+                classLink.setText("<html><u>" + safeClassName + "</u></html>");
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                classLink.setText(info.classEntry.getClassName());
+                classLink.setText(safeClassName);
             }
         });
         panel.add(classLink);
@@ -385,6 +386,14 @@ public class WelcomeTab extends JPanel implements ThemeManager.ThemeChangeListen
         panel.add(mainLabel);
 
         return panel;
+    }
+
+    private String sanitize(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     /**

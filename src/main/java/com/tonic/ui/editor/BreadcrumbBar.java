@@ -154,13 +154,21 @@ public class BreadcrumbBar extends JPanel {
         add(sep);
     }
 
+    private static String sanitize(String text) {
+        if (text == null) return "";
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
     /**
      * A single breadcrumb segment.
      */
     private static class BreadcrumbItem extends JLabel {
 
         BreadcrumbItem(String text, boolean isCurrent, Runnable onClick) {
-            super(text);
+            super(sanitize(text));
             setFont(JStudioTheme.getUIFont(11));
 
             if (isCurrent) {

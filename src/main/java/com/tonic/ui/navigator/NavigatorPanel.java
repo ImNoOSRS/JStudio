@@ -243,6 +243,9 @@ public class NavigatorPanel extends JPanel implements ThemeManager.ThemeChangeLi
         } else if (node instanceof NavigatorNode.MethodNode) {
             MethodEntryModel methodEntry = ((NavigatorNode.MethodNode) node).getMethodEntry();
             mainFrame.getPropertiesPanel().showMethod(methodEntry);
+        } else if (node instanceof NavigatorNode.FieldNode) {
+            FieldEntryModel fieldEntry = ((NavigatorNode.FieldNode) node).getFieldEntry();
+            mainFrame.getPropertiesPanel().showField(fieldEntry);
         }
     }
 
