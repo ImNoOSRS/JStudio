@@ -42,6 +42,7 @@ public class EditorPanel extends JPanel implements ThemeManager.ThemeChangeListe
     private WelcomeTab welcomeTab;
 
     private ViewMode currentViewMode = ViewMode.SOURCE;
+    private boolean omitAnnotations = false;
 
     public EditorPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -133,6 +134,7 @@ public class EditorPanel extends JPanel implements ThemeManager.ThemeChangeListe
         // Create new tab
         EditorTab tab = new EditorTab(classEntry);
         tab.setViewMode(viewMode);
+        tab.setOmitAnnotations(omitAnnotations);
         if (projectModel != null) {
             tab.setProjectModel(projectModel);
         }
@@ -370,6 +372,16 @@ public class EditorPanel extends JPanel implements ThemeManager.ThemeChangeListe
         EditorTab current = getCurrentTab();
         if (current != null) {
             current.setViewMode(mode);
+        }
+    }
+
+    /**
+     * Set whether to omit annotations from decompiled output display.
+     */
+    public void setOmitAnnotations(boolean omit) {
+        this.omitAnnotations = omit;
+        for (EditorTab tab : openTabs.values()) {
+            tab.setOmitAnnotations(omit);
         }
     }
 

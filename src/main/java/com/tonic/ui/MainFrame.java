@@ -97,6 +97,7 @@ public class MainFrame extends JFrame {
 
     // Current state
     private ViewMode currentViewMode = ViewMode.SOURCE;
+    private boolean omitAnnotations = false;
 
     // Editor settings
     private int currentFontSize = 13;
@@ -633,6 +634,15 @@ public class MainFrame extends JFrame {
         editorPanel.setViewMode(ViewMode.HEX);
         statusBar.setMode("Hex");
         // Note: Toolbar doesn't have HEX mode yet, leave it as is
+    }
+
+    public void setOmitAnnotations(boolean omit) {
+        this.omitAnnotations = omit;
+        editorPanel.setOmitAnnotations(omit);
+    }
+
+    public boolean isOmitAnnotations() {
+        return omitAnnotations;
     }
 
     public void toggleNavigatorPanel() {

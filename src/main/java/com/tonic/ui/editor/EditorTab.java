@@ -112,6 +112,13 @@ public class EditorTab extends JPanel {
     }
 
     /**
+     * Set whether to omit annotations from decompiled output display.
+     */
+    public void setOmitAnnotations(boolean omit) {
+        sourceView.setOmitAnnotations(omit);
+    }
+
+    /**
      * Refresh the current view.
      */
     public void refresh() {

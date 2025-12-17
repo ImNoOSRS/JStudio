@@ -24,6 +24,7 @@ public class ToolbarBuilder {
     private JToggleButton sourceButton;
     private JToggleButton bytecodeButton;
     private JToggleButton irButton;
+    private JToggleButton omitAnnotationsButton;
 
     public ToolbarBuilder(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -60,6 +61,17 @@ public class ToolbarBuilder {
         irButton = createToggleButton(Icons.getIcon("ir"), "IR View (F7)", viewGroup,
                 e -> mainFrame.switchToIRView());
         toolbar.add(irButton);
+
+        toolbar.addSeparator();
+
+        omitAnnotationsButton = new JToggleButton(Icons.getIcon("annotation"));
+        omitAnnotationsButton.setToolTipText("Hide Annotations");
+        omitAnnotationsButton.setFocusable(false);
+        omitAnnotationsButton.setBorderPainted(false);
+        omitAnnotationsButton.setPreferredSize(new Dimension(32, 32));
+        omitAnnotationsButton.addActionListener(e ->
+                mainFrame.setOmitAnnotations(omitAnnotationsButton.isSelected()));
+        toolbar.add(omitAnnotationsButton);
 
         toolbar.addSeparator();
 

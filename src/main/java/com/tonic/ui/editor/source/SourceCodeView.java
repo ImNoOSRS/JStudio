@@ -45,6 +45,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
     private ProjectModel projectModel;
 
     private boolean loaded = false;
+    private boolean omitAnnotations = false;
 
     public SourceCodeView(ClassEntryModel classEntry) {
         this.classEntry = classEntry;
@@ -276,7 +277,8 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
     public void refresh() {
         if (loaded && classEntry.getDecompilationCache() != null) {
             // Use cached decompilation
-            textArea.setText(classEntry.getDecompilationCache());
+            String source = classEntry.getDecompilationCache();
+            textArea.setText(omitAnnotations ? filterAnnotations(source) : source);
             textArea.setCaretPosition(0);
             return;
         }
@@ -303,7 +305,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
                 try {
                     String source = get();
                     classEntry.setDecompilationCache(source);
-                    textArea.setText(source);
+                    textArea.setText(omitAnnotations ? filterAnnotations(source) : source);
                     textArea.setCaretPosition(0);
                     loaded = true;
                 } catch (Exception e) {
@@ -313,6 +315,42 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
         };
 
         worker.execute();
+    }
+
+    /**
+     * Set whether to omit annotations from decompiled output display.
+     */
+    public void setOmitAnnotations(boolean omit) {
+        this.omitAnnotations = omit;
+        if (loaded && classEntry.getDecompilationCache() != null) {
+            String source = classEntry.getDecompilationCache();
+            textArea.setText(omitAnnotations ? filterAnnotations(source) : source);
+            textArea.setCaretPosition(0);
+        }
+    }
+
+    /**
+     * Filter out standalone annotation lines from source code.
+     */
+    private String filterAnnotations(String source) {
+        StringBuilder result = new StringBuilder();
+        for (String line : source.split("\n")) {
+            String trimmed = line.trim();
+            if (!isStandaloneAnnotation(trimmed)) {
+                result.append(line).append("\n");
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * Check if a line is ONLY an annotation (no code after it).
+     */
+    private boolean isStandaloneAnnotation(String trimmed) {
+        if (!trimmed.startsWith("@")) {
+            return false;
+        }
+        return trimmed.matches("^@\\w+(\\s*\\([^)]*\\))?\\s*$");
     }
 
     /**
