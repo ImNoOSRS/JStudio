@@ -4,6 +4,7 @@ import com.tonic.plugin.api.*;
 import com.tonic.plugin.result.ResultCollector;
 import com.tonic.ui.model.ProjectModel;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +21,7 @@ public class PluginContextImpl implements PluginContext {
     private final ResultCollector results;
     private final Map<String, Object> services = new ConcurrentHashMap<>();
     private final Map<String, Object> environment = new ConcurrentHashMap<>();
+    private File exportDir;
 
     public PluginContextImpl(ProjectModel projectModel, String pluginName) {
         this.projectModel = projectModel;
@@ -96,5 +98,14 @@ public class PluginContextImpl implements PluginContext {
 
     public MapPluginConfig getConfigImpl() {
         return config;
+    }
+
+    @Override
+    public File getExportDir() {
+        return exportDir;
+    }
+
+    public void setExportDir(File exportDir) {
+        this.exportDir = exportDir;
     }
 }

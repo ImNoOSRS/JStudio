@@ -38,6 +38,7 @@ public class ExecutionEngine {
 
             String pluginName = plugin.getInfo() != null ? plugin.getInfo().getName() : "plugin";
             PluginContextImpl context = new PluginContextImpl(project, pluginName);
+            context.setExportDir(config.getExportDir());
             plugin.init(context);
 
             if (config.isDryRun()) {
@@ -51,7 +52,7 @@ public class ExecutionEngine {
 
             plugin.execute();
 
-            if (config.getExportDir() != null && plugin instanceof TransformerPlugin) {
+            if (config.getExportDir() != null) {
                 exportClasses(project, config.getExportDir());
             }
 

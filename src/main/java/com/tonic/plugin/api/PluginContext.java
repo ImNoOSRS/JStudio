@@ -2,6 +2,7 @@ package com.tonic.plugin.api;
 
 import com.tonic.plugin.result.ResultCollector;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,4 +25,6 @@ public interface PluginContext {
     Map<String, Object> getEnvironment();
 
     void setEnvironmentValue(String key, Object value);
+
+    File getExportDir();
 }

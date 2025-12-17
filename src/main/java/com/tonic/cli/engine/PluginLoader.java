@@ -157,6 +157,7 @@ public class PluginLoader {
             binding.setVariable("results", context.getResults());
             binding.setVariable("log", context.getLogger());
             binding.setVariable("config", context.getConfig());
+            binding.setVariable("exportDir", context.getExportDir());
         }
 
         @Override
