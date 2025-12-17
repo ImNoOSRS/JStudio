@@ -8,8 +8,10 @@ import com.tonic.ui.theme.Icons;
 
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,56 +100,74 @@ public class ClassTreeModel extends DefaultTreeModel {
             packageNode.add(classNode);
         }
 
-        // Collapse single-child package chains
         collapseEmptyPackages(root);
 
         setRoot(root);
         reload();
     }
 
-    private void collapseEmptyPackages(NavigatorNode node) {
-        // Process children first (bottom-up)
-        for (int i = 0; i < node.getChildCount(); i++) {
-            Object child = node.getChildAt(i);
-            if (child instanceof NavigatorNode) {
-                collapseEmptyPackages((NavigatorNode) child);
+    private void collapseEmptyPackages(NavigatorNode.ProjectNode root) {
+        Deque<NavigatorNode> stack = new ArrayDeque<>();
+        for (int i = 0; i < root.getChildCount(); i++) {
+            TreeNode child = root.getChildAt(i);
+            if (child instanceof NavigatorNode.PackageNode) {
+                stack.push((NavigatorNode.PackageNode) child);
             }
         }
 
-        // Check if this node should collapse its single package child
-        if (node instanceof NavigatorNode.PackageNode || node instanceof NavigatorNode.ProjectNode) {
-            collapseSinglePackageChild(node);
+        while (!stack.isEmpty()) {
+            NavigatorNode node = stack.pop();
+            if (!(node instanceof NavigatorNode.PackageNode)) {
+                continue;
+            }
+
+            NavigatorNode.PackageNode pkgNode = (NavigatorNode.PackageNode) node;
+
+            while (hasSinglePackageChild(pkgNode)) {
+                NavigatorNode.PackageNode childPkg = getSinglePackageChild(pkgNode);
+                String combinedName = pkgNode.getPackageName() + "." + getLastSegment(childPkg.getPackageName());
+                pkgNode.setDisplayName(combinedName);
+
+                List<TreeNode> grandChildren = new ArrayList<>();
+                for (int i = 0; i < childPkg.getChildCount(); i++) {
+                    grandChildren.add(childPkg.getChildAt(i));
+                }
+
+                pkgNode.remove(childPkg);
+
+                for (TreeNode grandChild : grandChildren) {
+                    if (grandChild instanceof NavigatorNode) {
+                        pkgNode.add((NavigatorNode) grandChild);
+                    }
+                }
+            }
+
+            for (int i = 0; i < pkgNode.getChildCount(); i++) {
+                TreeNode child = pkgNode.getChildAt(i);
+                if (child instanceof NavigatorNode.PackageNode) {
+                    stack.push((NavigatorNode.PackageNode) child);
+                }
+            }
         }
     }
 
-    private void collapseSinglePackageChild(NavigatorNode parent) {
-        while (parent.getChildCount() == 1) {
-            Object onlyChild = parent.getChildAt(0);
-            if (!(onlyChild instanceof NavigatorNode.PackageNode)) {
-                break;
-            }
-
-            NavigatorNode.PackageNode childPkg = (NavigatorNode.PackageNode) onlyChild;
-
-            // Build combined display name
-            String parentDisplay;
-            if (parent instanceof NavigatorNode.PackageNode) {
-                parentDisplay = ((NavigatorNode.PackageNode) parent).getDisplayText();
-            } else {
-                break; // Don't collapse into project node
-            }
-
-            String combinedDisplay = parentDisplay + "." + childPkg.getDisplayText();
-            ((NavigatorNode.PackageNode) parent).setDisplayName(combinedDisplay);
-
-            // Move grandchildren to parent and remove child
-            parent.remove(childPkg);
-            while (childPkg.getChildCount() > 0) {
-                NavigatorNode grandchild = (NavigatorNode) childPkg.getChildAt(0);
-                childPkg.remove(grandchild);
-                parent.add(grandchild);
-            }
+    private boolean hasSinglePackageChild(NavigatorNode.PackageNode node) {
+        if (node.getChildCount() != 1) {
+            return false;
         }
+        return node.getChildAt(0) instanceof NavigatorNode.PackageNode;
+    }
+
+    private NavigatorNode.PackageNode getSinglePackageChild(NavigatorNode.PackageNode node) {
+        if (node.getChildCount() == 1 && node.getChildAt(0) instanceof NavigatorNode.PackageNode) {
+            return (NavigatorNode.PackageNode) node.getChildAt(0);
+        }
+        return null;
+    }
+
+    private String getLastSegment(String packageName) {
+        int lastDot = packageName.lastIndexOf('.');
+        return lastDot >= 0 ? packageName.substring(lastDot + 1) : packageName;
     }
 
     private List<ClassEntryModel> getFilteredClasses() {
