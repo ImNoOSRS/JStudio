@@ -25,6 +25,7 @@ public class AnalysisPanel extends JPanel {
     private SimilarityPanel similarityPanel;
     private CommentsPanel commentsPanel;
     private BookmarksPanel bookmarksPanel;
+    private SimulationPanel simulationPanel;
 
     public AnalysisPanel(ProjectModel project) {
         this.project = project;
@@ -48,6 +49,7 @@ public class AnalysisPanel extends JPanel {
         similarityPanel = new SimilarityPanel(project);
         commentsPanel = new CommentsPanel(project);
         bookmarksPanel = new BookmarksPanel(project);
+        simulationPanel = new SimulationPanel(project);
 
         // Add tabs
         tabbedPane.addTab("Call Graph", callGraphPanel);
@@ -60,6 +62,7 @@ public class AnalysisPanel extends JPanel {
         tabbedPane.addTab("Find Usages", usagesPanel);
         tabbedPane.addTab("Bookmarks", bookmarksPanel);
         tabbedPane.addTab("Comments", commentsPanel);
+        tabbedPane.addTab("Simulation", simulationPanel);
 
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -78,6 +81,7 @@ public class AnalysisPanel extends JPanel {
         similarityPanel.refresh();
         commentsPanel.refresh();
         bookmarksPanel.refresh();
+        simulationPanel.refresh();
     }
 
     /**
@@ -250,5 +254,19 @@ public class AnalysisPanel extends JPanel {
      */
     public void showBookmarks() {
         tabbedPane.setSelectedComponent(bookmarksPanel);
+    }
+
+    /**
+     * Get the simulation panel.
+     */
+    public SimulationPanel getSimulationPanel() {
+        return simulationPanel;
+    }
+
+    /**
+     * Select the simulation tab.
+     */
+    public void showSimulation() {
+        tabbedPane.setSelectedComponent(simulationPanel);
     }
 }

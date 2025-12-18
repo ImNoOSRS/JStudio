@@ -10,6 +10,7 @@ import com.tonic.parser.attribute.anotation.Annotation;
 import com.tonic.parser.constpool.Utf8Item;
 import com.tonic.ui.event.EventBus;
 import com.tonic.ui.event.events.ClassSelectedEvent;
+import com.tonic.ui.MainFrame;
 import com.tonic.ui.model.Bookmark;
 import com.tonic.ui.model.ClassEntryModel;
 import com.tonic.ui.model.Comment;
@@ -216,6 +217,13 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
 
         menu.addSeparator();
 
+        // Run Simulation Analysis
+        JMenuItem simulationItem = createMenuItem("Run Simulation Analysis", Icons.getIcon("analyze"));
+        simulationItem.addActionListener(ev -> runSimulationAnalysis());
+        menu.add(simulationItem);
+
+        menu.addSeparator();
+
         // Add Bookmark
         JMenuItem bookmarkItem = createMenuItem("Add Bookmark for This Class...", Icons.getIcon("bookmark"));
         bookmarkItem.addActionListener(ev -> addBookmark());
@@ -302,6 +310,16 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
         if (name != null && !name.trim().isEmpty()) {
             Bookmark bookmark = new Bookmark(classEntry.getClassName(), name.trim());
             ProjectDatabaseService.getInstance().addBookmark(bookmark);
+        }
+    }
+
+    private void runSimulationAnalysis() {
+        java.awt.Container parent = getParent();
+        while (parent != null && !(parent instanceof MainFrame)) {
+            parent = parent.getParent();
+        }
+        if (parent instanceof MainFrame) {
+            ((MainFrame) parent).runSimulationAnalysis();
         }
     }
 

@@ -108,6 +108,10 @@ public class Icons {
                 return new AddIcon(size);
             case "copy":
                 return new CopyIcon(size);
+            case "opaque":
+                return new OpaquePredicateIcon(size);
+            case "dead_code":
+                return new DeadCodeIcon(size);
             default:
                 return new PlaceholderIcon(size);
         }
@@ -681,6 +685,35 @@ public class Icons {
             g2.drawRect(2, 2, size - 4, size - 4);
             g2.drawLine(2, 2, size - 2, size - 2);
             g2.drawLine(size - 2, 2, 2, size - 2);
+        }
+    }
+
+    private static class OpaquePredicateIcon extends BaseIcon {
+        OpaquePredicateIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(new Color(255, 180, 100));
+            g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawOval(2, 2, 12, 12);
+            g2.drawLine(8, 4, 8, 9);
+            g2.fillOval(7, 11, 2, 2);
+        }
+    }
+
+    private static class DeadCodeIcon extends BaseIcon {
+        DeadCodeIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(new Color(128, 128, 128));
+            g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(3, 3, 13, 13);
+            g2.drawLine(13, 3, 3, 13);
         }
     }
 }

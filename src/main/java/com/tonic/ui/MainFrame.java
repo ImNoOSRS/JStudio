@@ -83,6 +83,7 @@ public class MainFrame extends JFrame {
     // Analysis and transform dialogs
     private JDialog analysisDialog;
     private AnalysisPanel analysisPanel;
+    private ProjectModel analysisProjectRef;
     private JDialog transformDialog;
     private TransformPanel transformPanel;
     private FindInFilesDialog findInFilesDialog;
@@ -276,8 +277,33 @@ public class MainFrame extends JFrame {
                 ExtensionFileFilter.javaFiles());
 
         if (result.isApproved()) {
-            for (File file : result.getSelectedFiles()) {
-                openFile(file.getAbsolutePath());
+            List<File> files = result.getSelectedFiles();
+            if (ProjectService.getInstance().hasProject()) {
+                int choice = showAppendOrReplaceDialog(files.size());
+                if (choice == 0) {
+                    // Append
+                    appendFiles(files);
+                } else if (choice == 1) {
+                    // Replace - close existing workspace first
+                    editorPanel.closeAllTabs();
+                    navigatorPanel.clear();
+                    navigationHistory.clear();
+                    historyIndex = -1;
+                    if (analysisDialog != null) {
+                        analysisDialog.dispose();
+                        analysisDialog = null;
+                        analysisPanel = null;
+                        analysisProjectRef = null;
+                    }
+                    for (File file : files) {
+                        openFile(file.getAbsolutePath());
+                    }
+                }
+                // choice == 2 is Cancel - do nothing
+            } else {
+                for (File file : files) {
+                    openFile(file.getAbsolutePath());
+                }
             }
         }
     }
@@ -361,7 +387,17 @@ public class MainFrame extends JFrame {
                         // Append
                         appendFiles(validFiles);
                     } else if (choice == 1) {
-                        // Replace
+                        // Replace - close existing workspace first
+                        editorPanel.closeAllTabs();
+                        navigatorPanel.clear();
+                        navigationHistory.clear();
+                        historyIndex = -1;
+                        if (analysisDialog != null) {
+                            analysisDialog.dispose();
+                            analysisDialog = null;
+                            analysisPanel = null;
+                            analysisProjectRef = null;
+                        }
                         for (File file : validFiles) {
                             openFile(file.getAbsolutePath());
                         }
@@ -528,6 +564,14 @@ public class MainFrame extends JFrame {
         editorPanel.closeAllTabs();
         navigationHistory.clear();
         historyIndex = -1;
+
+        if (analysisDialog != null) {
+            analysisDialog.dispose();
+            analysisDialog = null;
+            analysisPanel = null;
+            analysisProjectRef = null;
+        }
+
         setTitle(JStudio.APP_NAME + " " + JStudio.APP_VERSION);
     }
 
@@ -943,17 +987,23 @@ public class MainFrame extends JFrame {
     // === Analysis Operations ===
 
     public void runAnalysis() {
-        ClassEntryModel currentClass = editorPanel.getCurrentClass();
-        if (currentClass == null) {
-            showWarning("No class selected for analysis.");
+        ProjectModel project = ProjectService.getInstance().getCurrentProject();
+        if (project == null) {
+            showWarning("No project loaded.");
             return;
         }
-        consolePanel.log("Running analysis on " + currentClass.getClassName() + "...");
+        ClassEntryModel currentClass = editorPanel.getCurrentClass();
+        if (currentClass != null) {
+            consolePanel.log("Running analysis on " + currentClass.getClassName() + "...");
+        } else {
+            consolePanel.log("Opening analysis tools...");
+        }
         showAnalysisDialog();
     }
 
     /**
      * Show the analysis dialog (creates it if needed).
+     * Recreates the panel if the project has changed.
      */
     private void showAnalysisDialog() {
         ProjectModel project = ProjectService.getInstance().getCurrentProject();
@@ -962,8 +1012,14 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        if (analysisDialog == null || analysisPanel == null) {
+        boolean needsRecreate = analysisDialog == null || analysisPanel == null || analysisProjectRef != project;
+
+        if (needsRecreate) {
+            if (analysisDialog != null) {
+                analysisDialog.dispose();
+            }
             analysisPanel = new AnalysisPanel(project);
+            analysisProjectRef = project;
             analysisDialog = new JDialog(this, "Analysis", false);
             analysisDialog.setSize(900, 600);
             analysisDialog.setLocationRelativeTo(this);
@@ -1457,5 +1513,31 @@ public class MainFrame extends JFrame {
 
     public AnalysisPanel getAnalysisPanel() {
         return analysisPanel;
+    }
+
+    /**
+     * Run simulation analysis on the current method or class.
+     */
+    public void runSimulationAnalysis() {
+        ProjectModel project = ProjectService.getInstance().getCurrentProject();
+        if (project == null) {
+            showWarning("No project loaded.");
+            return;
+        }
+
+        showAnalysisDialog();
+        analysisPanel.showSimulation();
+
+        MethodEntryModel currentMethod = editorPanel.getCurrentMethod();
+        if (currentMethod != null) {
+            analysisPanel.getSimulationPanel().analyzeMethod(currentMethod);
+        } else {
+            ClassEntryModel currentClass = editorPanel.getCurrentClass();
+            if (currentClass != null) {
+                analysisPanel.getSimulationPanel().analyzeClass(currentClass);
+            } else {
+                consolePanel.log("Select a method or class to analyze.");
+            }
+        }
     }
 }
