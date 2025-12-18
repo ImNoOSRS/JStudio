@@ -10,8 +10,12 @@ import com.tonic.parser.attribute.anotation.Annotation;
 import com.tonic.parser.constpool.Utf8Item;
 import com.tonic.ui.event.EventBus;
 import com.tonic.ui.event.events.ClassSelectedEvent;
+import com.tonic.ui.model.Bookmark;
 import com.tonic.ui.model.ClassEntryModel;
+import com.tonic.ui.model.Comment;
 import com.tonic.ui.model.ProjectModel;
+import com.tonic.ui.service.ProjectDatabaseService;
+import com.tonic.ui.theme.Icons;
 import com.tonic.ui.theme.SyntaxColors;
 import com.tonic.ui.theme.JStudioTheme;
 import com.tonic.ui.theme.Theme;
@@ -21,12 +25,19 @@ import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.SyntaxScheme;
 import org.fife.ui.rsyntaxtextarea.Token;
+import org.fife.ui.rtextarea.Gutter;
+import org.fife.ui.rtextarea.GutterIconInfo;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.fife.ui.rtextarea.SearchContext;
 import org.fife.ui.rtextarea.SearchEngine;
 
+import javax.swing.BorderFactory;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import javax.swing.text.BadLocationException;
 import java.awt.BorderLayout;
@@ -58,6 +69,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
 
     private boolean loaded = false;
     private boolean omitAnnotations = false;
+    private java.util.List<GutterIconInfo> commentIcons = new java.util.ArrayList<>();
 
     public SourceCodeView(ClassEntryModel classEntry) {
         this.classEntry = classEntry;
@@ -81,6 +93,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
         // Scroll pane with line numbers
         scrollPane = new RTextScrollPane(textArea);
         scrollPane.setLineNumbersEnabled(true);
+        scrollPane.setIconRowHeaderEnabled(true);
         scrollPane.setBorder(null);
 
         add(scrollPane, BorderLayout.CENTER);
@@ -90,6 +103,14 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
 
         // Setup Ctrl+Click for Go to Definition
         setupGoToDefinition();
+
+        // Setup right-click context menu
+        setupContextMenu();
+
+        // Listen for comment changes to update gutter icons
+        ProjectDatabaseService.getInstance().addListener((db, dirty) -> {
+            SwingUtilities.invokeLater(this::updateCommentGutterIcons);
+        });
 
         ThemeManager.getInstance().addThemeChangeListener(this);
     }
@@ -129,6 +150,225 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
                 }
             }
         });
+    }
+
+    private void setupContextMenu() {
+        textArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e);
+                }
+            }
+        });
+    }
+
+    private void showContextMenu(MouseEvent e) {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setBackground(JStudioTheme.getBgSecondary());
+        menu.setBorder(BorderFactory.createLineBorder(JStudioTheme.getBorder()));
+
+        int clickOffset = textArea.viewToModel2D(e.getPoint());
+        int lineNumber = 1;
+        try {
+            lineNumber = textArea.getLineOfOffset(clickOffset) + 1;
+        } catch (BadLocationException ex) {
+            // Use default line 1
+        }
+        final int line = lineNumber;
+
+        // Copy
+        JMenuItem copyItem = createMenuItem("Copy", Icons.getIcon("copy"));
+        copyItem.addActionListener(ev -> copySelection());
+        copyItem.setEnabled(textArea.getSelectedText() != null && !textArea.getSelectedText().isEmpty());
+        menu.add(copyItem);
+
+        menu.addSeparator();
+
+        // Go to Definition
+        JMenuItem gotoItem = createMenuItem("Go to Definition", null);
+        gotoItem.addActionListener(ev -> navigateToDefinition(e));
+        String selectedText = textArea.getSelectedText();
+        gotoItem.setEnabled(selectedText != null && !selectedText.isEmpty());
+        menu.add(gotoItem);
+
+        menu.addSeparator();
+
+        // Add Comment at Line
+        JMenuItem commentItem = createMenuItem("Add Comment at Line " + line + "...", Icons.getIcon("comment"));
+        commentItem.addActionListener(ev -> addCommentAtLine(line));
+        menu.add(commentItem);
+
+        // View Comments at Line
+        int commentsAtLine = countCommentsAtLine(line);
+        if (commentsAtLine > 0) {
+            JMenuItem viewCommentItem = createMenuItem("View Comments at Line " + line + " (" + commentsAtLine + ")", null);
+            viewCommentItem.addActionListener(ev -> viewCommentsAtLine(line));
+            menu.add(viewCommentItem);
+        }
+
+        menu.addSeparator();
+
+        // Add Bookmark
+        JMenuItem bookmarkItem = createMenuItem("Add Bookmark for This Class...", Icons.getIcon("bookmark"));
+        bookmarkItem.addActionListener(ev -> addBookmark());
+        menu.add(bookmarkItem);
+
+        menu.show(textArea, e.getX(), e.getY());
+    }
+
+    private JMenuItem createMenuItem(String text, javax.swing.Icon icon) {
+        JMenuItem item = new JMenuItem(text);
+        item.setBackground(JStudioTheme.getBgSecondary());
+        item.setForeground(JStudioTheme.getTextPrimary());
+        if (icon != null) {
+            item.setIcon(icon);
+        }
+        return item;
+    }
+
+    private void addCommentAtLine(int lineNumber) {
+        JTextArea commentArea = new JTextArea(5, 40);
+        commentArea.setLineWrap(true);
+        commentArea.setWrapStyleWord(true);
+        JScrollPane commentScroll = new JScrollPane(commentArea);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                commentScroll,
+                "Add Comment at Line " + lineNumber + " in " + classEntry.getSimpleName(),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION && !commentArea.getText().trim().isEmpty()) {
+            Comment comment = new Comment(classEntry.getClassName(), lineNumber, commentArea.getText().trim());
+            comment.setType(Comment.Type.LINE);
+            ProjectDatabaseService.getInstance().addComment(comment);
+        }
+    }
+
+    private int countCommentsAtLine(int lineNumber) {
+        if (!ProjectDatabaseService.getInstance().hasDatabase()) {
+            return 0;
+        }
+        java.util.List<Comment> comments = ProjectDatabaseService.getInstance()
+                .getDatabase().getComments().getCommentsForClass(classEntry.getClassName());
+        int count = 0;
+        for (Comment c : comments) {
+            if (c.getLineNumber() == lineNumber) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void viewCommentsAtLine(int lineNumber) {
+        if (!ProjectDatabaseService.getInstance().hasDatabase()) {
+            return;
+        }
+        java.util.List<Comment> comments = ProjectDatabaseService.getInstance()
+                .getDatabase().getComments().getCommentsForClass(classEntry.getClassName());
+        StringBuilder sb = new StringBuilder();
+        for (Comment c : comments) {
+            if (c.getLineNumber() == lineNumber) {
+                if (sb.length() > 0) {
+                    sb.append("\n---\n");
+                }
+                sb.append(c.getText());
+            }
+        }
+        if (sb.length() > 0) {
+            JTextArea viewArea = new JTextArea(sb.toString());
+            viewArea.setEditable(false);
+            viewArea.setLineWrap(true);
+            viewArea.setWrapStyleWord(true);
+            viewArea.setRows(Math.min(10, sb.toString().split("\n").length + 2));
+            viewArea.setColumns(50);
+            JScrollPane viewScroll = new JScrollPane(viewArea);
+            JOptionPane.showMessageDialog(this, viewScroll,
+                    "Comments at Line " + lineNumber, JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void addBookmark() {
+        String name = JOptionPane.showInputDialog(this, "Bookmark name:", "Add Bookmark", JOptionPane.PLAIN_MESSAGE);
+        if (name != null && !name.trim().isEmpty()) {
+            Bookmark bookmark = new Bookmark(classEntry.getClassName(), name.trim());
+            ProjectDatabaseService.getInstance().addBookmark(bookmark);
+        }
+    }
+
+    private void updateCommentGutterIcons() {
+        Gutter gutter = scrollPane.getGutter();
+
+        // Remove existing comment icons
+        for (GutterIconInfo iconInfo : commentIcons) {
+            gutter.removeTrackingIcon(iconInfo);
+        }
+        commentIcons.clear();
+
+        // Get comments for this class
+        if (!ProjectDatabaseService.getInstance().hasDatabase()) {
+            return;
+        }
+
+        java.util.List<Comment> comments = ProjectDatabaseService.getInstance()
+                .getDatabase().getComments().getCommentsForClass(classEntry.getClassName());
+
+        if (comments.isEmpty()) {
+            return;
+        }
+
+        // Group comments by line number
+        java.util.Map<Integer, java.util.List<Comment>> commentsByLine = new java.util.HashMap<>();
+        for (Comment c : comments) {
+            int line = c.getLineNumber();
+            if (line > 0) {
+                commentsByLine.computeIfAbsent(line, k -> new java.util.ArrayList<>()).add(c);
+            }
+        }
+
+        // Add gutter icons for each line with comments
+        javax.swing.Icon commentIcon = Icons.getIcon("comment");
+        for (java.util.Map.Entry<Integer, java.util.List<Comment>> entry : commentsByLine.entrySet()) {
+            int lineNumber = entry.getKey();
+            java.util.List<Comment> lineComments = entry.getValue();
+
+            // Build tooltip
+            StringBuilder tooltip = new StringBuilder("<html>");
+            for (int i = 0; i < lineComments.size(); i++) {
+                if (i > 0) {
+                    tooltip.append("<hr>");
+                }
+                String text = lineComments.get(i).getText();
+                if (text.length() > 100) {
+                    text = text.substring(0, 97) + "...";
+                }
+                tooltip.append(escapeHtml(text).replace("\n", "<br>"));
+            }
+            tooltip.append("</html>");
+
+            try {
+                GutterIconInfo iconInfo = gutter.addLineTrackingIcon(lineNumber - 1, commentIcon, tooltip.toString());
+                commentIcons.add(iconInfo);
+            } catch (BadLocationException e) {
+                // Line doesn't exist, skip
+            }
+        }
+    }
+
+    private String escapeHtml(String text) {
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;");
     }
 
     /**
@@ -292,6 +532,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
             String source = classEntry.getDecompilationCache();
             textArea.setText(omitAnnotations ? filterAnnotations(source) : source);
             textArea.setCaretPosition(0);
+            updateCommentGutterIcons();
             return;
         }
 
@@ -320,6 +561,7 @@ public class SourceCodeView extends JPanel implements ThemeManager.ThemeChangeLi
                     textArea.setText(omitAnnotations ? filterAnnotations(source) : source);
                     textArea.setCaretPosition(0);
                     loaded = true;
+                    updateCommentGutterIcons();
                 } catch (Exception e) {
                     textArea.setText("// Failed to decompile: " + e.getMessage());
                 }

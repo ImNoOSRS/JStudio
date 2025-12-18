@@ -55,6 +55,9 @@ public class MenuBarBuilder {
         menu.add(createMenuItem("Open JAR/Class...", KeyEvent.VK_O, MENU_SHORTCUT_MASK,
                 Icons.getIcon("open"), e -> mainFrame.showOpenDialog()));
 
+        menu.add(createMenuItem("Open Project...", 0, 0,
+                null, e -> mainFrame.openProjectFile()));
+
         // Recent Files submenu
         recentFilesMenu = new JMenu("Open Recent");
         recentFilesMenu.setMnemonic(KeyEvent.VK_R);
@@ -63,8 +66,16 @@ public class MenuBarBuilder {
 
         menu.addSeparator();
 
-        menu.add(createMenuItem("Export Class...", KeyEvent.VK_E, MENU_SHORTCUT_MASK | InputEvent.SHIFT_DOWN_MASK,
-                Icons.getIcon("save"), e -> mainFrame.exportCurrentClass()));
+        menu.add(createMenuItem("Save Project", KeyEvent.VK_S, MENU_SHORTCUT_MASK,
+                Icons.getIcon("save"), e -> mainFrame.saveProject()));
+
+        menu.add(createMenuItem("Save Project As...", KeyEvent.VK_S, MENU_SHORTCUT_MASK | InputEvent.SHIFT_DOWN_MASK,
+                null, e -> mainFrame.saveProjectAs()));
+
+        menu.addSeparator();
+
+        menu.add(createMenuItem("Export Class...", KeyEvent.VK_E, MENU_SHORTCUT_MASK | InputEvent.ALT_DOWN_MASK,
+                null, e -> mainFrame.exportCurrentClass()));
 
         menu.add(createMenuItem("Export All Classes...", 0, 0,
                 null, e -> mainFrame.exportAllClasses()));
@@ -140,6 +151,20 @@ public class MenuBarBuilder {
 
         menu.add(createMenuItem("Go to Line...", KeyEvent.VK_L, MENU_SHORTCUT_MASK,
                 null, e -> mainFrame.showGoToLineDialog()));
+
+        menu.addSeparator();
+
+        menu.add(createMenuItem("Add Bookmark...", KeyEvent.VK_B, MENU_SHORTCUT_MASK,
+                Icons.getIcon("bookmark"), e -> mainFrame.addBookmarkAtCurrentLocation()));
+
+        menu.add(createMenuItem("Add Comment...", KeyEvent.VK_SEMICOLON, MENU_SHORTCUT_MASK,
+                Icons.getIcon("comment"), e -> mainFrame.addCommentAtCurrentLocation()));
+
+        menu.add(createMenuItem("View Bookmarks", KeyEvent.VK_B, MENU_SHORTCUT_MASK | InputEvent.SHIFT_DOWN_MASK,
+                null, e -> mainFrame.showBookmarksPanel()));
+
+        menu.add(createMenuItem("View Comments", 0, 0,
+                null, e -> mainFrame.showCommentsPanel()));
 
         menu.addSeparator();
 

@@ -23,6 +23,8 @@ public class AnalysisPanel extends JPanel {
     private XrefPanel xrefPanel;
     private DataFlowPanel dataFlowPanel;
     private SimilarityPanel similarityPanel;
+    private CommentsPanel commentsPanel;
+    private BookmarksPanel bookmarksPanel;
 
     public AnalysisPanel(ProjectModel project) {
         this.project = project;
@@ -44,6 +46,8 @@ public class AnalysisPanel extends JPanel {
         xrefPanel = new XrefPanel(project);
         dataFlowPanel = new DataFlowPanel(project);
         similarityPanel = new SimilarityPanel(project);
+        commentsPanel = new CommentsPanel(project);
+        bookmarksPanel = new BookmarksPanel(project);
 
         // Add tabs
         tabbedPane.addTab("Call Graph", callGraphPanel);
@@ -54,6 +58,8 @@ public class AnalysisPanel extends JPanel {
         tabbedPane.addTab("Search", searchPanel);
         tabbedPane.addTab("Strings", stringsPanel);
         tabbedPane.addTab("Find Usages", usagesPanel);
+        tabbedPane.addTab("Bookmarks", bookmarksPanel);
+        tabbedPane.addTab("Comments", commentsPanel);
 
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -70,6 +76,8 @@ public class AnalysisPanel extends JPanel {
         xrefPanel.refresh();
         dataFlowPanel.refresh();
         similarityPanel.refresh();
+        commentsPanel.refresh();
+        bookmarksPanel.refresh();
     }
 
     /**
@@ -214,5 +222,33 @@ public class AnalysisPanel extends JPanel {
      */
     public void showSimilarity() {
         tabbedPane.setSelectedComponent(similarityPanel);
+    }
+
+    /**
+     * Get the comments panel.
+     */
+    public CommentsPanel getCommentsPanel() {
+        return commentsPanel;
+    }
+
+    /**
+     * Select the comments tab.
+     */
+    public void showComments() {
+        tabbedPane.setSelectedComponent(commentsPanel);
+    }
+
+    /**
+     * Get the bookmarks panel.
+     */
+    public BookmarksPanel getBookmarksPanel() {
+        return bookmarksPanel;
+    }
+
+    /**
+     * Select the bookmarks tab.
+     */
+    public void showBookmarks() {
+        tabbedPane.setSelectedComponent(bookmarksPanel);
     }
 }

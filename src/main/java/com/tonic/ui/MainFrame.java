@@ -14,11 +14,14 @@ import com.tonic.ui.event.events.MethodSelectedEvent;
 import com.tonic.ui.event.events.ProjectLoadedEvent;
 import com.tonic.ui.event.events.ProjectUpdatedEvent;
 import com.tonic.ui.event.events.StatusMessageEvent;
+import com.tonic.ui.model.Bookmark;
 import com.tonic.ui.model.ClassEntryModel;
+import com.tonic.ui.model.Comment;
 import com.tonic.ui.model.MethodEntryModel;
 import com.tonic.ui.model.ProjectModel;
 import com.tonic.ui.navigator.NavigatorPanel;
 import com.tonic.ui.properties.PropertiesPanel;
+import com.tonic.ui.service.ProjectDatabaseService;
 import com.tonic.ui.service.ProjectService;
 import com.tonic.ui.theme.JStudioTheme;
 import com.tonic.ui.transform.TransformPanel;
@@ -249,8 +252,9 @@ public class MainFrame extends JFrame {
         // Handle project loaded
         EventBus.getInstance().register(ProjectLoadedEvent.class, event -> {
             ProjectModel project = event.getProject();
-            setTitle(JStudio.APP_NAME + " - " + project.getProjectName());
             editorPanel.setProjectModel(project);
+            ProjectDatabaseService.getInstance().initializeForProject(project);
+            updateTitleBar();
         });
 
         // Handle project updated (classes appended)
@@ -515,7 +519,11 @@ public class MainFrame extends JFrame {
     }
 
     public void closeProject() {
+        if (!confirmCloseIfDirty()) {
+            return;
+        }
         ProjectService.getInstance().closeProject();
+        ProjectDatabaseService.getInstance().close();
         navigatorPanel.clear();
         editorPanel.closeAllTabs();
         navigationHistory.clear();
@@ -523,17 +531,125 @@ public class MainFrame extends JFrame {
         setTitle(JStudio.APP_NAME + " " + JStudio.APP_VERSION);
     }
 
-    public void exitApplication() {
-        ProjectModel project = ProjectService.getInstance().getCurrentProject();
-        if (project != null && project.isDirty()) {
-            int result = JOptionPane.showConfirmDialog(this,
-                    "You have unsaved changes. Are you sure you want to exit?",
-                    "Confirm Exit",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
-            if (result != JOptionPane.YES_OPTION) {
+    public void openProjectFile() {
+        FileChooserResult result = FileChooserDialog.showOpenDialog(this,
+                "Open JStudio Project",
+                new ExtensionFileFilter("JStudio Project", "jstudio"));
+
+        if (result.isApproved()) {
+            File file = result.getSelectedFile();
+            try {
+                ProjectDatabaseService.getInstance().open(file);
+                String targetPath = ProjectDatabaseService.getInstance().getDatabase().getTargetPath();
+                if (targetPath != null) {
+                    File targetFile = new File(targetPath);
+                    if (targetFile.exists()) {
+                        openFile(targetPath);
+                    } else {
+                        showWarning("Target file not found: " + targetPath + "\nThe project annotations have been loaded but no classes are available.");
+                    }
+                }
+                updateTitleBar();
+            } catch (IOException e) {
+                showError("Failed to open project: " + e.getMessage());
+            }
+        }
+    }
+
+    public void saveProject() {
+        ProjectDatabaseService dbService = ProjectDatabaseService.getInstance();
+        if (!dbService.hasDatabase()) {
+            ProjectModel project = ProjectService.getInstance().getCurrentProject();
+            if (project != null && project.getSourceFile() != null) {
+                dbService.create(project.getSourceFile());
+            } else {
+                showWarning("No project loaded to save.");
                 return;
             }
+        }
+        try {
+            dbService.save();
+            updateTitleBar();
+            consolePanel.log("Project saved: " + dbService.getProjectFile().getName());
+        } catch (IOException e) {
+            showError("Failed to save project: " + e.getMessage());
+        }
+    }
+
+    public void saveProjectAs() {
+        ProjectDatabaseService dbService = ProjectDatabaseService.getInstance();
+        if (!dbService.hasDatabase()) {
+            ProjectModel project = ProjectService.getInstance().getCurrentProject();
+            if (project != null && project.getSourceFile() != null) {
+                dbService.create(project.getSourceFile());
+            } else {
+                showWarning("No project loaded to save.");
+                return;
+            }
+        }
+
+        String defaultName = "project.jstudio";
+        if (dbService.getProjectFile() != null) {
+            defaultName = dbService.getProjectFile().getName();
+        } else if (dbService.getDatabase() != null) {
+            defaultName = dbService.getDatabase().getTargetFileName().replace(".jar", "") + ".jstudio";
+        }
+
+        FileChooserResult result = FileChooserDialog.showSaveDialog(this,
+                defaultName,
+                new ExtensionFileFilter("JStudio Project", "jstudio"));
+
+        if (result.isApproved()) {
+            File file = result.getSelectedFile();
+            if (!file.getName().endsWith(".jstudio")) {
+                file = new File(file.getAbsolutePath() + ".jstudio");
+            }
+            try {
+                dbService.saveAs(file);
+                updateTitleBar();
+                consolePanel.log("Project saved as: " + file.getName());
+            } catch (IOException e) {
+                showError("Failed to save project: " + e.getMessage());
+            }
+        }
+    }
+
+    private boolean confirmCloseIfDirty() {
+        ProjectDatabaseService dbService = ProjectDatabaseService.getInstance();
+        if (dbService.isDirty()) {
+            int result = JOptionPane.showConfirmDialog(this,
+                    "You have unsaved project changes. Would you like to save before closing?",
+                    "Save Changes?",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+            if (result == JOptionPane.YES_OPTION) {
+                saveProject();
+                return true;
+            } else if (result == JOptionPane.NO_OPTION) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void updateTitleBar() {
+        StringBuilder title = new StringBuilder(JStudio.APP_NAME);
+        ProjectModel project = ProjectService.getInstance().getCurrentProject();
+        if (project != null) {
+            title.append(" - ").append(project.getProjectName());
+        }
+        ProjectDatabaseService dbService = ProjectDatabaseService.getInstance();
+        if (dbService.isDirty()) {
+            title.append(" *");
+        }
+        setTitle(title.toString());
+    }
+
+    public void exitApplication() {
+        if (!confirmCloseIfDirty()) {
+            return;
         }
 
         // Save settings before exit
@@ -763,6 +879,65 @@ public class MainFrame extends JFrame {
 
     public void showGoToLineDialog() {
         editorPanel.showGoToLineDialog();
+    }
+
+    // === Bookmarks & Comments ===
+
+    public void addBookmarkAtCurrentLocation() {
+        ClassEntryModel currentClass = editorPanel.getCurrentClass();
+        if (currentClass == null) {
+            showWarning("No class selected. Open a class first to add a bookmark.");
+            return;
+        }
+
+        String name = JOptionPane.showInputDialog(this, "Bookmark name:", "Add Bookmark", JOptionPane.PLAIN_MESSAGE);
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+
+        Bookmark bookmark = new Bookmark(currentClass.getClassName(), name.trim());
+        ProjectDatabaseService.getInstance().addBookmark(bookmark);
+        consolePanel.log("Added bookmark: " + name.trim() + " → " + currentClass.getSimpleName());
+    }
+
+    public void addCommentAtCurrentLocation() {
+        ClassEntryModel currentClass = editorPanel.getCurrentClass();
+        if (currentClass == null) {
+            showWarning("No class selected. Open a class first to add a comment.");
+            return;
+        }
+
+        javax.swing.JTextArea textArea = new javax.swing.JTextArea(5, 30);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+        int result = JOptionPane.showConfirmDialog(this, scrollPane,
+                "Add Comment for " + currentClass.getSimpleName(),
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION && !textArea.getText().trim().isEmpty()) {
+            Comment comment = new Comment(currentClass.getClassName(), -1, textArea.getText().trim());
+            comment.setType(Comment.Type.CLASS);
+            ProjectDatabaseService.getInstance().addComment(comment);
+            consolePanel.log("Added comment to " + currentClass.getSimpleName());
+        }
+    }
+
+    public void showBookmarksPanel() {
+        showAnalysisDialog();
+        if (analysisPanel != null) {
+            analysisPanel.showBookmarks();
+            analysisPanel.getBookmarksPanel().refresh();
+        }
+    }
+
+    public void showCommentsPanel() {
+        showAnalysisDialog();
+        if (analysisPanel != null) {
+            analysisPanel.showComments();
+            analysisPanel.getCommentsPanel().refresh();
+        }
     }
 
     // === Analysis Operations ===

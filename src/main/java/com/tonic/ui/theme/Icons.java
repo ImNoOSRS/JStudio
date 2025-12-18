@@ -96,6 +96,18 @@ public class Icons {
                 return new ErrorCircleIcon(size);
             case "info":
                 return new InfoIcon(size);
+            case "bookmark":
+                return new BookmarkIcon(size);
+            case "comment":
+                return new CommentIcon(size);
+            case "delete":
+                return new DeleteIcon(size);
+            case "edit":
+                return new EditIcon(size);
+            case "add":
+                return new AddIcon(size);
+            case "copy":
+                return new CopyIcon(size);
             default:
                 return new PlaceholderIcon(size);
         }
@@ -553,6 +565,107 @@ public class Icons {
                 g2.drawLine(x1, y1, x2, y2);
             }
             g2.drawOval(cx - innerR, cy - innerR, innerR * 2, innerR * 2);
+        }
+    }
+
+    private static class BookmarkIcon extends BaseIcon {
+        BookmarkIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getWarning());
+            Path2D path = new Path2D.Float();
+            path.moveTo(3, 2);
+            path.lineTo(3, 14);
+            path.lineTo(8, 10);
+            path.lineTo(13, 14);
+            path.lineTo(13, 2);
+            path.closePath();
+            g2.fill(path);
+        }
+    }
+
+    private static class CommentIcon extends BaseIcon {
+        CommentIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getInfo());
+            g2.setStroke(getStroke());
+            g2.drawRoundRect(2, 2, 12, 9, 3, 3);
+            g2.drawLine(5, 11, 3, 14);
+            g2.drawLine(3, 5, 13, 5);
+            g2.drawLine(3, 8, 10, 8);
+        }
+    }
+
+    private static class DeleteIcon extends BaseIcon {
+        DeleteIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getError());
+            g2.setStroke(getStroke());
+            g2.drawLine(3, 4, 13, 4);
+            g2.drawLine(5, 4, 5, 2);
+            g2.drawLine(11, 4, 11, 2);
+            g2.drawLine(5, 2, 11, 2);
+            g2.drawRect(4, 4, 8, 10);
+            g2.drawLine(6, 7, 6, 12);
+            g2.drawLine(8, 7, 8, 12);
+            g2.drawLine(10, 7, 10, 12);
+        }
+    }
+
+    private static class EditIcon extends BaseIcon {
+        EditIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getAccent());
+            g2.setStroke(getStroke());
+            g2.drawLine(3, 13, 13, 3);
+            g2.drawLine(11, 3, 13, 3);
+            g2.drawLine(13, 3, 13, 5);
+            g2.drawLine(3, 13, 5, 13);
+            g2.drawLine(3, 13, 3, 11);
+        }
+    }
+
+    private static class AddIcon extends BaseIcon {
+        AddIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getSuccess());
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int mid = size / 2;
+            g2.drawLine(mid, 3, mid, 13);
+            g2.drawLine(3, mid, 13, mid);
+        }
+    }
+
+    private static class CopyIcon extends BaseIcon {
+        CopyIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getTextPrimary());
+            g2.setStroke(getStroke());
+            g2.drawRoundRect(4, 1, 9, 11, 2, 2);
+            g2.drawRoundRect(2, 4, 9, 11, 2, 2);
         }
     }
 

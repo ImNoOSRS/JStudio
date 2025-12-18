@@ -75,6 +75,11 @@ public class ToolbarBuilder {
 
         toolbar.addSeparator();
 
+        // Bookmarks & Comments
+        toolbar.add(createButton(Icons.getIcon("bookmark"), "Add Bookmark (Ctrl+B)", e -> mainFrame.addBookmarkAtCurrentLocation()));
+        toolbar.add(createButton(Icons.getIcon("comment"), "Add Comment (Ctrl+;)", e -> mainFrame.addCommentAtCurrentLocation()));
+        toolbar.addSeparator();
+
         // Analysis
         toolbar.add(createButton(Icons.getIcon("analyze"), "Run Analysis (F9)", e -> mainFrame.runAnalysis()));
         toolbar.add(createButton(Icons.getIcon("callgraph"), "Show Call Graph (Ctrl+Shift+G)", e -> mainFrame.showCallGraph()));
