@@ -221,6 +221,11 @@ public class MenuBarBuilder {
         menu.add(createMenuItem("Refresh", KeyEvent.VK_F5, MENU_SHORTCUT_MASK,
                 Icons.getIcon("refresh"), e -> mainFrame.refreshCurrentView()));
 
+        menu.addSeparator();
+
+        menu.add(createMenuItem("Class Browser...", KeyEvent.VK_B, MENU_SHORTCUT_MASK | InputEvent.SHIFT_DOWN_MASK,
+                Icons.getIcon("browser"), e -> mainFrame.showClassBrowser()));
+
         return menu;
     }
 

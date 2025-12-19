@@ -1,6 +1,7 @@
 package com.tonic.ui.dialog.filechooser;
 
 import com.tonic.ui.theme.JStudioTheme;
+import com.tonic.ui.util.QuickAccessManager;
 
 import javax.swing.BorderFactory;
 import javax.swing.JMenuItem;
@@ -139,12 +140,12 @@ public class FileListPanel extends JPanel {
             }
 
             private void maybeShowPopup(MouseEvent e) {
-                if (e.isPopupTrigger() && mode == FileChooserMode.SAVE_FILE) {
+                if (e.isPopupTrigger()) {
                     int row = table.rowAtPoint(e.getPoint());
                     if (row >= 0 && !table.isRowSelected(row)) {
                         table.setRowSelectionInterval(row, row);
                     }
-                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
+                    showContextMenu(e);
                 }
             }
         });
@@ -195,14 +196,51 @@ public class FileListPanel extends JPanel {
 
     private void setupContextMenu() {
         contextMenu = new JPopupMenu();
-        contextMenu.setBackground(JStudioTheme.getBgSecondary());
-        contextMenu.setBorder(BorderFactory.createLineBorder(JStudioTheme.getBorder()));
+        styleMenu(contextMenu);
+    }
 
-        JMenuItem newFolderItem = new JMenuItem("New Folder");
-        newFolderItem.setBackground(JStudioTheme.getBgSecondary());
-        newFolderItem.setForeground(JStudioTheme.getTextPrimary());
-        newFolderItem.addActionListener(e -> createNewFolder());
-        contextMenu.add(newFolderItem);
+    private void showContextMenu(MouseEvent e) {
+        contextMenu.removeAll();
+
+        File selectedFile = getSelectedFile();
+        boolean hasSelection = selectedFile != null;
+        boolean isFolder = hasSelection && selectedFile.isDirectory();
+        QuickAccessManager manager = QuickAccessManager.getInstance();
+
+        if (isFolder) {
+            if (manager.isPinned(selectedFile)) {
+                addMenuItem(contextMenu, "Unpin from Quick Access", () -> manager.removePinned(selectedFile));
+            } else {
+                addMenuItem(contextMenu, "Pin to Quick Access", () -> manager.addPinned(selectedFile));
+            }
+            contextMenu.addSeparator();
+        }
+
+        if (mode == FileChooserMode.SAVE_FILE) {
+            addMenuItem(contextMenu, "New Folder", this::createNewFolder);
+
+            if (hasSelection) {
+                contextMenu.addSeparator();
+                addMenuItem(contextMenu, "Delete", this::deleteSelectedFiles);
+            }
+        }
+
+        if (contextMenu.getComponentCount() > 0) {
+            contextMenu.show(e.getComponent(), e.getX(), e.getY());
+        }
+    }
+
+    private void styleMenu(JPopupMenu menu) {
+        menu.setBackground(JStudioTheme.getBgSecondary());
+        menu.setBorder(BorderFactory.createLineBorder(JStudioTheme.getBorder()));
+    }
+
+    private void addMenuItem(JPopupMenu menu, String text, Runnable action) {
+        JMenuItem item = new JMenuItem(text);
+        item.setBackground(JStudioTheme.getBgSecondary());
+        item.setForeground(JStudioTheme.getTextPrimary());
+        item.addActionListener(e -> action.run());
+        menu.add(item);
     }
 
     private void handleDoubleClick(int viewRow) {

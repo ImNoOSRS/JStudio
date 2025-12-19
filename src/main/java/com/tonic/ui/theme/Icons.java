@@ -112,6 +112,10 @@ public class Icons {
                 return new OpaquePredicateIcon(size);
             case "dead_code":
                 return new DeadCodeIcon(size);
+            case "browser":
+                return new BrowserIcon(size);
+            case "constpool":
+                return new ConstPoolIcon(size);
             default:
                 return new PlaceholderIcon(size);
         }
@@ -714,6 +718,42 @@ public class Icons {
             g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.drawLine(3, 3, 13, 13);
             g2.drawLine(13, 3, 3, 13);
+        }
+    }
+
+    private static class BrowserIcon extends BaseIcon {
+        BrowserIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getAccent());
+            g2.setStroke(getStroke());
+            g2.drawRoundRect(2, 2, 12, 12, 2, 2);
+            g2.drawLine(2, 6, 14, 6);
+            g2.drawLine(7, 6, 7, 14);
+            g2.setColor(JStudioTheme.getAccentSecondary());
+            g2.fillRect(3, 3, 4, 2);
+        }
+    }
+
+    private static class ConstPoolIcon extends BaseIcon {
+        ConstPoolIcon(int size) {
+            super(size);
+        }
+
+        @Override
+        protected void paintIconContent(Graphics2D g2) {
+            g2.setColor(JStudioTheme.getInfo());
+            g2.setStroke(getStroke());
+            g2.drawOval(3, 2, 10, 4);
+            g2.drawLine(3, 4, 3, 12);
+            g2.drawLine(13, 4, 13, 12);
+            g2.drawArc(3, 10, 10, 4, 180, 180);
+            g2.setColor(JStudioTheme.getAccent());
+            g2.drawLine(6, 6, 6, 10);
+            g2.drawLine(10, 6, 10, 10);
         }
     }
 }

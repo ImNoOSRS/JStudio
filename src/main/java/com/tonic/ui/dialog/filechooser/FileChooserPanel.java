@@ -1,6 +1,7 @@
 package com.tonic.ui.dialog.filechooser;
 
 import com.tonic.ui.theme.JStudioTheme;
+import com.tonic.ui.util.QuickAccessManager;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -304,6 +305,9 @@ public class FileChooserPanel extends JPanel {
                     List<File> filtered = filterFilesByMode(files);
                     fileListPanel.setFiles(filtered, directory);
                     isLoading = false;
+
+                    // Track as recent directory
+                    QuickAccessManager.getInstance().addRecent(directory);
 
                     // Focus file list
                     fileListPanel.focusTable();

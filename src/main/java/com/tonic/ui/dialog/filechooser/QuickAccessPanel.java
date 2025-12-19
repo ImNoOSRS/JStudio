@@ -1,6 +1,7 @@
 package com.tonic.ui.dialog.filechooser;
 
 import com.tonic.ui.theme.JStudioTheme;
+import com.tonic.ui.util.QuickAccessManager;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -8,66 +9,89 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
-import javax.swing.filechooser.FileSystemView;
+import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Quick access sidebar with shortcuts to common locations and drives.
+ * Quick access sidebar with pinned directories, special folders, recent directories, and drives.
  */
-public class QuickAccessPanel extends JPanel {
+public class QuickAccessPanel extends JPanel implements QuickAccessManager.QuickAccessListener {
 
-    /**
-     * Listener for location selection events.
-     */
     public interface LocationListener {
         void onLocationSelected(File location);
     }
 
     private final LocationListener listener;
-    private final List<File> recentLocations = new ArrayList<>();
+    private final QuickAccessManager manager;
+
+    private final DefaultListModel<QuickAccessItem> pinnedModel;
     private final DefaultListModel<QuickAccessItem> quickAccessModel;
+    private final DefaultListModel<QuickAccessItem> recentModel;
     private final DefaultListModel<QuickAccessItem> drivesModel;
+
+    private JList<QuickAccessItem> pinnedList;
     private JList<QuickAccessItem> quickAccessList;
+    private JList<QuickAccessItem> recentList;
     private JList<QuickAccessItem> drivesList;
+
+    private JLabel pinnedHeader;
+    private JLabel recentHeader;
 
     public QuickAccessPanel(LocationListener listener) {
         this.listener = listener;
+        this.manager = QuickAccessManager.getInstance();
 
         setLayout(new BorderLayout());
         setBackground(JStudioTheme.getBgSecondary());
-        setPreferredSize(new Dimension(160, 0));
+        setPreferredSize(new Dimension(170, 0));
         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, JStudioTheme.getBorder()));
 
+        pinnedModel = new DefaultListModel<>();
         quickAccessModel = new DefaultListModel<>();
+        recentModel = new DefaultListModel<>();
         drivesModel = new DefaultListModel<>();
 
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBackground(JStudioTheme.getBgSecondary());
 
-        // Quick Access section
+        pinnedHeader = createSectionHeader("Pinned");
+        contentPanel.add(pinnedHeader);
+        pinnedList = createList(pinnedModel, QuickAccessItemType.PINNED);
+        contentPanel.add(pinnedList);
+
+        contentPanel.add(Box.createVerticalStrut(12));
+
         contentPanel.add(createSectionHeader("Quick Access"));
-        quickAccessList = createList(quickAccessModel);
+        quickAccessList = createList(quickAccessModel, QuickAccessItemType.FOLDER);
         contentPanel.add(quickAccessList);
 
-        contentPanel.add(Box.createVerticalStrut(16));
+        contentPanel.add(Box.createVerticalStrut(12));
 
-        // Drives section
+        recentHeader = createSectionHeader("Recent");
+        contentPanel.add(recentHeader);
+        recentList = createList(recentModel, QuickAccessItemType.RECENT);
+        contentPanel.add(recentList);
+
+        contentPanel.add(Box.createVerticalStrut(12));
+
         contentPanel.add(createSectionHeader("This PC"));
-        drivesList = createList(drivesModel);
+        drivesList = createList(drivesModel, QuickAccessItemType.DRIVE);
         contentPanel.add(drivesList);
 
         contentPanel.add(Box.createVerticalGlue());
@@ -78,9 +102,39 @@ public class QuickAccessPanel extends JPanel {
         scrollPane.getViewport().setBackground(JStudioTheme.getBgSecondary());
         add(scrollPane, BorderLayout.CENTER);
 
-        // Populate items
+        populatePinned();
         populateQuickAccess();
+        populateRecent();
         populateDrives();
+        updateSectionVisibility();
+
+        manager.addListener(this);
+    }
+
+    @Override
+    public void onPinnedChanged(List<File> pinned) {
+        SwingUtilities.invokeLater(() -> {
+            populatePinned();
+            updateSectionVisibility();
+        });
+    }
+
+    @Override
+    public void onRecentChanged(List<File> recent) {
+        SwingUtilities.invokeLater(() -> {
+            populateRecent();
+            updateSectionVisibility();
+        });
+    }
+
+    private void updateSectionVisibility() {
+        boolean hasPinned = pinnedModel.getSize() > 0;
+        pinnedHeader.setVisible(hasPinned);
+        pinnedList.setVisible(hasPinned);
+
+        boolean hasRecent = recentModel.getSize() > 0;
+        recentHeader.setVisible(hasRecent);
+        recentList.setVisible(hasRecent);
     }
 
     private JLabel createSectionHeader(String title) {
@@ -92,32 +146,43 @@ public class QuickAccessPanel extends JPanel {
         return header;
     }
 
-    private JList<QuickAccessItem> createList(DefaultListModel<QuickAccessItem> model) {
+    private JList<QuickAccessItem> createList(DefaultListModel<QuickAccessItem> model,
+                                               QuickAccessItemType defaultType) {
         JList<QuickAccessItem> list = new JList<>(model);
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setBackground(JStudioTheme.getBgSecondary());
         list.setForeground(JStudioTheme.getTextPrimary());
         list.setFont(JStudioTheme.getUIFont(12));
-        list.setFixedCellHeight(28);
+        list.setFixedCellHeight(26);
         list.setCellRenderer(new QuickAccessRenderer());
         list.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Single click to navigate
         list.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                int index = list.locationToIndex(e.getPoint());
-                if (index >= 0) {
-                    QuickAccessItem item = model.getElementAt(index);
-                    if (item != null && item.file != null && listener != null) {
-                        listener.onLocationSelected(item.file);
-                        // Clear selection in other list
-                        if (list == quickAccessList) {
-                            drivesList.clearSelection();
-                        } else {
-                            quickAccessList.clearSelection();
+                if (e.getClickCount() == 1 && SwingUtilities.isLeftMouseButton(e)) {
+                    int index = list.locationToIndex(e.getPoint());
+                    if (index >= 0) {
+                        QuickAccessItem item = model.getElementAt(index);
+                        if (item != null && item.file != null && listener != null) {
+                            listener.onLocationSelected(item.file);
+                            clearAllSelections();
                         }
                     }
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e, list, model);
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showContextMenu(e, list, model);
                 }
             }
         });
@@ -125,48 +190,95 @@ public class QuickAccessPanel extends JPanel {
         return list;
     }
 
+    private void showContextMenu(MouseEvent e, JList<QuickAccessItem> list,
+                                  DefaultListModel<QuickAccessItem> model) {
+        int index = list.locationToIndex(e.getPoint());
+        if (index < 0) return;
+
+        list.setSelectedIndex(index);
+        QuickAccessItem item = model.getElementAt(index);
+        if (item == null || item.file == null) return;
+
+        JPopupMenu menu = new JPopupMenu();
+        styleMenu(menu);
+
+        if (item.type == QuickAccessItemType.PINNED) {
+            addMenuItem(menu, "Unpin", () -> manager.removePinned(item.file));
+            menu.addSeparator();
+            addMenuItem(menu, "Move Up", () -> manager.movePinnedUp(item.file));
+            addMenuItem(menu, "Move Down", () -> manager.movePinnedDown(item.file));
+        } else if (item.type == QuickAccessItemType.RECENT) {
+            if (!manager.isPinned(item.file)) {
+                addMenuItem(menu, "Pin to Quick Access", () -> manager.addPinned(item.file));
+            }
+            addMenuItem(menu, "Remove", () -> manager.removeRecent(item.file));
+            menu.addSeparator();
+            addMenuItem(menu, "Clear All Recent", () -> manager.clearRecent());
+        } else {
+            if (!manager.isPinned(item.file)) {
+                addMenuItem(menu, "Pin to Quick Access", () -> manager.addPinned(item.file));
+            } else {
+                addMenuItem(menu, "Unpin", () -> manager.removePinned(item.file));
+            }
+        }
+
+        if (menu.getComponentCount() > 0) {
+            menu.show(list, e.getX(), e.getY());
+        }
+    }
+
+    private void styleMenu(JPopupMenu menu) {
+        menu.setBackground(JStudioTheme.getBgSecondary());
+        menu.setBorder(BorderFactory.createLineBorder(JStudioTheme.getBorder()));
+    }
+
+    private void addMenuItem(JPopupMenu menu, String text, Runnable action) {
+        JMenuItem item = new JMenuItem(text);
+        item.setBackground(JStudioTheme.getBgSecondary());
+        item.setForeground(JStudioTheme.getTextPrimary());
+        item.addActionListener(e -> action.run());
+        menu.add(item);
+    }
+
+    private void populatePinned() {
+        pinnedModel.clear();
+        for (File dir : manager.getPinnedDirectories()) {
+            pinnedModel.addElement(new QuickAccessItem(
+                    dir.getName(),
+                    dir,
+                    QuickAccessItemType.PINNED
+            ));
+        }
+    }
+
     private void populateQuickAccess() {
         quickAccessModel.clear();
 
         Map<String, File> folders = FileSystemWorker.getSpecialFolders();
 
-        // Add special folders in order
-        addIfExists(folders, "Desktop", quickAccessModel);
-        addIfExists(folders, "Documents", quickAccessModel);
-        addIfExists(folders, "Downloads", quickAccessModel);
-        addIfExists(folders, "Home", quickAccessModel);
-
-        // Add recent locations
-        for (File recent : recentLocations) {
-            if (recent.exists() && recent.isDirectory()) {
-                quickAccessModel.addElement(new QuickAccessItem(
-                        recent.getName(),
-                        recent,
-                        QuickAccessItemType.RECENT
-                ));
-            }
-        }
+        addIfExists(folders, "Desktop", quickAccessModel, QuickAccessItemType.DESKTOP);
+        addIfExists(folders, "Documents", quickAccessModel, QuickAccessItemType.DOCUMENTS);
+        addIfExists(folders, "Downloads", quickAccessModel, QuickAccessItemType.DOWNLOADS);
+        addIfExists(folders, "Home", quickAccessModel, QuickAccessItemType.HOME);
     }
 
     private void addIfExists(Map<String, File> folders, String key,
-                             DefaultListModel<QuickAccessItem> model) {
+                             DefaultListModel<QuickAccessItem> model,
+                             QuickAccessItemType type) {
         File file = folders.get(key);
         if (file != null && file.exists()) {
-            QuickAccessItemType type;
-            switch (key) {
-                case "Desktop":
-                    type = QuickAccessItemType.DESKTOP;
-                    break;
-                case "Documents":
-                    type = QuickAccessItemType.DOCUMENTS;
-                    break;
-                case "Downloads":
-                    type = QuickAccessItemType.DOWNLOADS;
-                    break;
-                default:
-                    type = QuickAccessItemType.FOLDER;
-            }
             model.addElement(new QuickAccessItem(key, file, type));
+        }
+    }
+
+    private void populateRecent() {
+        recentModel.clear();
+        for (File dir : manager.getRecentDirectories()) {
+            recentModel.addElement(new QuickAccessItem(
+                    dir.getName(),
+                    dir,
+                    QuickAccessItemType.RECENT
+            ));
         }
     }
 
@@ -182,47 +294,28 @@ public class QuickAccessPanel extends JPanel {
         }
     }
 
-    /**
-     * Add a location to recent list.
-     */
     public void addRecentLocation(File location) {
         if (location == null || !location.isDirectory()) {
             return;
         }
-
-        // Remove if already in list
-        recentLocations.remove(location);
-
-        // Add to front
-        recentLocations.add(0, location);
-
-        // Limit size
-        while (recentLocations.size() > 5) {
-            recentLocations.remove(recentLocations.size() - 1);
-        }
-
-        // Refresh
-        populateQuickAccess();
+        manager.addRecent(location);
     }
 
-    /**
-     * Clear selection in all lists.
-     */
     public void clearSelection() {
+        clearAllSelections();
+    }
+
+    private void clearAllSelections() {
+        pinnedList.clearSelection();
         quickAccessList.clearSelection();
+        recentList.clearSelection();
         drivesList.clearSelection();
     }
 
-    /**
-     * Item types for different icons.
-     */
     private enum QuickAccessItemType {
-        DESKTOP, DOCUMENTS, DOWNLOADS, FOLDER, RECENT, DRIVE
+        PINNED, DESKTOP, DOCUMENTS, DOWNLOADS, HOME, FOLDER, RECENT, DRIVE
     }
 
-    /**
-     * Quick access list item.
-     */
     private static class QuickAccessItem {
         final String name;
         final File file;
@@ -240,25 +333,31 @@ public class QuickAccessPanel extends JPanel {
         }
     }
 
-    /**
-     * Custom renderer for quick access items.
-     */
     private class QuickAccessRenderer implements ListCellRenderer<QuickAccessItem> {
         private final JPanel panel;
         private final JLabel iconLabel;
         private final JLabel textLabel;
+        private final JLabel pinIndicator;
 
         QuickAccessRenderer() {
-            panel = new JPanel(new BorderLayout(8, 0));
+            panel = new JPanel(new BorderLayout(6, 0));
             panel.setOpaque(true);
-            panel.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 8));
+            panel.setBorder(BorderFactory.createEmptyBorder(3, 12, 3, 8));
 
             iconLabel = new JLabel();
             textLabel = new JLabel();
             textLabel.setFont(JStudioTheme.getUIFont(12));
 
-            panel.add(iconLabel, BorderLayout.WEST);
-            panel.add(textLabel, BorderLayout.CENTER);
+            pinIndicator = new JLabel();
+            pinIndicator.setFont(JStudioTheme.getUIFont(10));
+
+            JPanel leftPanel = new JPanel(new BorderLayout(4, 0));
+            leftPanel.setOpaque(false);
+            leftPanel.add(iconLabel, BorderLayout.WEST);
+            leftPanel.add(textLabel, BorderLayout.CENTER);
+
+            panel.add(leftPanel, BorderLayout.CENTER);
+            panel.add(pinIndicator, BorderLayout.EAST);
         }
 
         @Override
@@ -268,19 +367,28 @@ public class QuickAccessPanel extends JPanel {
             if (isSelected) {
                 panel.setBackground(JStudioTheme.getSelection());
                 textLabel.setForeground(JStudioTheme.getTextPrimary());
+                pinIndicator.setForeground(JStudioTheme.getTextSecondary());
             } else {
                 panel.setBackground(JStudioTheme.getBgSecondary());
                 textLabel.setForeground(JStudioTheme.getTextPrimary());
+                pinIndicator.setForeground(JStudioTheme.getTextSecondary());
             }
 
             textLabel.setText(value.name);
 
-            // Get system icon
             if (value.file != null) {
                 javax.swing.Icon icon = FileSystemWorker.getSystemIcon(value.file);
                 iconLabel.setIcon(icon);
             } else {
                 iconLabel.setIcon(null);
+            }
+
+            if (value.type == QuickAccessItemType.PINNED) {
+                pinIndicator.setText("\u2302");
+            } else if (value.type == QuickAccessItemType.RECENT) {
+                pinIndicator.setText("");
+            } else {
+                pinIndicator.setText("");
             }
 
             return panel;

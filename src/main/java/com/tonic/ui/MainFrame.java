@@ -5,6 +5,7 @@ import com.tonic.analysis.pattern.SearchResult;
 import com.tonic.parser.ClassFile;
 import com.tonic.parser.MethodEntry;
 import com.tonic.ui.analysis.AnalysisPanel;
+import com.tonic.ui.browser.ConstPoolBrowserTab;
 import com.tonic.ui.console.ConsolePanel;
 import com.tonic.ui.editor.EditorPanel;
 import com.tonic.ui.editor.ViewMode;
@@ -89,6 +90,8 @@ public class MainFrame extends JFrame {
     private FindInFilesDialog findInFilesDialog;
     private ScriptEditorDialog scriptEditorDialog;
     private PreferencesDialog preferencesDialog;
+    private JDialog classBrowserDialog;
+    private ConstPoolBrowserTab classBrowserTab;
 
     // Split panes for layout
     private JSplitPane mainHorizontalSplit;
@@ -1539,5 +1542,59 @@ public class MainFrame extends JFrame {
                 consolePanel.log("Select a method or class to analyze.");
             }
         }
+    }
+
+    /**
+     * Show the class browser dialog for viewing constant pool and attributes.
+     */
+    public void showClassBrowser() {
+        ProjectModel project = ProjectService.getInstance().getCurrentProject();
+        if (project == null) {
+            showWarning("No project loaded.");
+            return;
+        }
+
+        ClassEntryModel currentClass = editorPanel.getCurrentClass();
+
+        if (classBrowserDialog == null || classBrowserTab == null) {
+            if (currentClass != null) {
+                classBrowserTab = new ConstPoolBrowserTab(project, currentClass);
+            } else {
+                classBrowserTab = new ConstPoolBrowserTab(project);
+            }
+            classBrowserDialog = new JDialog(this, "Class Browser", false);
+            classBrowserDialog.setSize(1000, 700);
+            classBrowserDialog.setLocationRelativeTo(this);
+            classBrowserDialog.add(classBrowserTab);
+        } else if (currentClass != null && currentClass != classBrowserTab.getCurrentClass()) {
+            classBrowserTab.loadClass(currentClass);
+        }
+
+        classBrowserDialog.setVisible(true);
+        classBrowserDialog.toFront();
+    }
+
+    /**
+     * Show class browser for a specific class.
+     */
+    public void showClassBrowser(ClassEntryModel classEntry) {
+        ProjectModel project = ProjectService.getInstance().getCurrentProject();
+        if (project == null) {
+            showWarning("No project loaded.");
+            return;
+        }
+
+        if (classBrowserDialog == null || classBrowserTab == null) {
+            classBrowserTab = new ConstPoolBrowserTab(project, classEntry);
+            classBrowserDialog = new JDialog(this, "Class Browser", false);
+            classBrowserDialog.setSize(1000, 700);
+            classBrowserDialog.setLocationRelativeTo(this);
+            classBrowserDialog.add(classBrowserTab);
+        } else {
+            classBrowserTab.loadClass(classEntry);
+        }
+
+        classBrowserDialog.setVisible(true);
+        classBrowserDialog.toFront();
     }
 }

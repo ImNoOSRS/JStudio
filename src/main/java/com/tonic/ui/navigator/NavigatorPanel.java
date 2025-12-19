@@ -366,6 +366,10 @@ public class NavigatorPanel extends JPanel implements ThemeManager.ThemeChangeLi
     private void buildMethodMenu(JPopupMenu menu, NavigatorNode.MethodNode node) {
         MethodEntryModel method = node.getMethodEntry();
 
+        addMenuItem(menu, "View in Class Browser", () -> {
+            mainFrame.showClassBrowser(method.getOwner());
+        });
+
         addMenuItem(menu, "View in Call Graph", () -> {
             mainFrame.showCallGraphForMethod(method.getMethodEntry());
         });
@@ -411,6 +415,10 @@ public class NavigatorPanel extends JPanel implements ThemeManager.ThemeChangeLi
             });
         });
 
+        addMenuItem(menu, "View in Class Browser", () -> {
+            mainFrame.showClassBrowser(field.getOwner());
+        });
+
         addMenuItem(menu, "Find Cross-References", () -> {
             mainFrame.showXrefsForField(
                 field.getOwner().getClassName(),
@@ -444,6 +452,10 @@ public class NavigatorPanel extends JPanel implements ThemeManager.ThemeChangeLi
 
         addMenuItem(menu, "Open in Editor", () -> {
             EventBus.getInstance().post(new ClassSelectedEvent(this, classEntry));
+        });
+
+        addMenuItem(menu, "View in Class Browser", () -> {
+            mainFrame.showClassBrowser(classEntry);
         });
 
         addMenuItem(menu, "View Dependencies", () -> {
