@@ -1,6 +1,7 @@
 package com.tonic.ui.dialog.filechooser;
 
 import com.tonic.ui.theme.JStudioTheme;
+import com.tonic.ui.util.Settings;
 
 import javax.swing.JDialog;
 import javax.swing.SwingUtilities;
@@ -41,7 +42,12 @@ public class FileChooserDialog extends JDialog {
                     result = FileChooserResult.approved(files);
                     // Remember directory
                     File first = files.get(0);
-                    lastDirectory = first.isDirectory() ? first : first.getParentFile();
+                    File dir = first.isDirectory() ? first : first.getParentFile();
+
+                    if (dir != null) {
+                        lastDirectory = dir;
+                        Settings.getInstance().setLastDirectory(dir.getAbsolutePath());
+                    }
                 }
                 dispose();
             }
@@ -268,9 +274,18 @@ public class FileChooserDialog extends JDialog {
             }
 
             // Set initial directory
-            File startDir = useLastDirectory ? lastDirectory : initialDirectory;
-            if (startDir != null && startDir.exists()) {
+            File startDir;
+            if (useLastDirectory) {
+                String saved = Settings.getInstance().getLastDirectory();
+                startDir = new File(saved);
+            } else {
+                startDir = initialDirectory;
+            }
+
+            if (startDir != null && startDir.exists() && startDir.isDirectory()) {
                 panel.setCurrentDirectory(startDir);
+            } else {
+                panel.setCurrentDirectory(new File(System.getProperty("user.home")));
             }
 
             // Set initial file name
