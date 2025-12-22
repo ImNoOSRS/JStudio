@@ -214,6 +214,7 @@ public class TransformPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(checkboxPanel);
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(JStudioTheme.getBgSecondary());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         // Buttons for select all/none
