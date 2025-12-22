@@ -100,13 +100,6 @@ public class FileChooserPanel extends JPanel {
 
         setupLayout();
         setupKeyboardShortcuts();
-
-        // Start at user home or current directory
-        File startDir = new File(System.getProperty("user.home"));
-        if (!startDir.exists()) {
-            startDir = new File(".");
-        }
-        navigateTo(startDir);
     }
 
     private void setupLayout() {
